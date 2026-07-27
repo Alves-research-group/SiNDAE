@@ -670,18 +670,31 @@ def _metrics_fixture():
 
 
 def _assert_metric_tables(out, problem, expected, order):
-    """Every requested metric prints a table matching the hand-computed oracle."""
+    """Every requested metric prints a table matching the hand-computed oracle.
+
+    The rendered table appends a range-normalized ``N<METRIC>`` column and a
+    ``mean`` summary row; both are rebuilt here from the oracle per-state
+    metrics.  Their numeric values are pinned independently by
+    ``test_normalized_metrics`` and ``test_msep``.
+    """
     from tabulate import tabulate
 
     assert "=== Per Trajectory Metrics ===" in out
     row_labels = np.asarray(
         [[f"traj_{i}"] for i in range(problem.num_trajectories)]
     )
+    delta = np.max(problem.obs_values, axis=1) - np.min(problem.obs_values, axis=1)
     for name in order:
         assert f"{name.upper()}: " in out
+        per = expected[name]
+        N = np.mean(per / delta, axis=1, keepdims=True)
+        body = np.hstack((row_labels, per, N))
+        mean_row = np.hstack((["mean"], np.mean(per, axis=0), [np.mean(N)]))
+        headers = [f"x_{i}" for i in range(problem.obs_dim)]
+        headers.append(f"N{name.upper()}")
         block = tabulate(
-            np.hstack((row_labels, expected[name])),
-            headers=[f"x_{i}" for i in range(problem.obs_dim)],
+            np.vstack((body, mean_row)),
+            headers=headers,
             tablefmt="fancy_grid",
         )
         assert block in out
@@ -742,6 +755,109 @@ def test_predict_metrics(monkeypatch, capsys):
     bare = LeslieGowerProblem(ics=np.array([[1.2, 0.15]]), nfe=15, ncp=2)
     with pytest.raises(ValueError, match="obs"):
         model.predict(bare, eval_metrics=["rmse"])
+
+    # An unknown metric name is rejected up front (before the inference solve).
+    with pytest.raises(ValueError, match="not available"):
+        model.predict(problem, eval_metrics=["rmse", "bogus"])
+
+def test_normalized_metrics(monkeypatch, capsys):
+    """fit(metrics=[...]) appends a range-normalized final column, N<METRIC>.
+
+    For each trajectory the normalized value divides the per-state metric by
+    that state's observed min-max range, then averages over the states:
+
+        N = (1 / n_states) * sum_k  metric[k] / (max(obs_k) - min(obs_k))
+
+    Oracle: hand computation on the shared metrics fixture, whose per-state
+    observed ranges are delta = [[2, 2], [20, 20]] (traj_0 obs span 2 in each
+    state, traj_1 obs span 20 in each state).
+    """
+    import sindae.hybrid_dae as hd
+    from sindae import HybridDAE, SimultaneousConfig
+
+    problem, data, expected = _metrics_fixture()
+
+    # --- Numeric oracle for the normalized column --------------------------
+    x, x_hat = hd._filter_data_from_collocation_points(problem, data)
+    row_labels = np.asarray(
+        [[f"traj_{i}"] for i in range(problem.num_trajectories)]
+    )
+    delta = np.max(problem.obs_values, axis=1) - np.min(problem.obs_values, axis=1)
+    np.testing.assert_array_equal(delta, [[2.0, 2.0], [20.0, 20.0]])
+
+    #   rmse: traj_0 = (1/2 + 2/2)/2 = 0.75 ; traj_1 = (3/20 + 0/20)/2 = 0.075
+    #   mse:  traj_0 = (1/2 + 4/2)/2 = 1.25 ; traj_1 = (9/20 + 0/20)/2 = 0.225
+    #   mae:  traj_0 = (1/2 + 2/2)/2 = 0.75 ; traj_1 = (3/20 + 0/20)/2 = 0.075
+    normalized = {
+        "rmse": np.array([[0.75], [0.075]]),
+        "mse":  np.array([[1.25], [0.225]]),
+        "mae":  np.array([[0.75], [0.075]]),
+    }
+
+    model = HybridDAE(net=_mlp())
+    for name in ("rmse", "mse", "mae"):
+        table = model._build_metrics_table(
+            problem, name, x, x_hat, row_labels, delta
+        )
+        # Columns are [label, x_0, ..., x_{obs_dim-1}, N<METRIC>]; the last row
+        # is the `mean` summary, excluded here (pinned by test_msep).
+        np.testing.assert_allclose(table[:-1, 1:-1].astype(float), expected[name])
+        np.testing.assert_allclose(table[:-1, -1:].astype(float), normalized[name])
+
+    # --- The rendered table advertises the normalized column in its header --
+    mlp = _mlp()
+    monkeypatch.setattr(hd, "solve_smoother", lambda *a, **k: _OptimalModel())
+    monkeypatch.setattr(hd, "extract_instance_data", lambda *a, **k: data)
+    monkeypatch.setattr(hd, "_capture_io_names", lambda *a, **k: None)
+    monkeypatch.setattr(hd, "pretrain_mlp", lambda mlp, d, cfg: mlp)
+    monkeypatch.setattr(hd, "solve_simultaneous",
+                        lambda *a, **k: (_OptimalModel(), mlp))
+
+    HybridDAE(net=mlp, train=SimultaneousConfig(reg_coef=1e-3)).fit(
+        problem, metrics=["rmse", "mse", "mae"]
+    )
+    out = capsys.readouterr().out
+    for name in ("rmse", "mse", "mae"):
+        assert f"N{name.upper()}" in out
+
+def test_msep():
+    """The bottom `mean` row is the per-state mean across trajectories, and its
+    final cell is the MSEP: the mean over trajectories of the normalized column.
+
+    Oracle: hand computation on the shared metrics fixture.  Per-state means are
+    the column means of ``expected[name]``; the MSEP is the mean of the
+    normalized per-trajectory values verified in ``test_normalized_metrics``.
+
+        rmse: means [2.0, 1.0]  MSEP = mean(0.75, 0.075) = 0.4125
+        mse:  means [5.0, 2.0]  MSEP = mean(1.25, 0.225) = 0.7375
+        mae:  means [2.0, 1.0]  MSEP = mean(0.75, 0.075) = 0.4125
+    """
+    import sindae.hybrid_dae as hd
+    from sindae import HybridDAE
+
+    problem, data, _ = _metrics_fixture()
+    x, x_hat = hd._filter_data_from_collocation_points(problem, data)
+    row_labels = np.asarray(
+        [[f"traj_{i}"] for i in range(problem.num_trajectories)]
+    )
+    delta = np.max(problem.obs_values, axis=1) - np.min(problem.obs_values, axis=1)
+
+    state_means = {
+        "rmse": [2.0, 1.0],
+        "mse":  [5.0, 2.0],
+        "mae":  [2.0, 1.0],
+    }
+    msep = {"rmse": 0.4125, "mse": 0.7375, "mae": 0.4125}
+
+    model = HybridDAE(net=_mlp())
+    for name in ("rmse", "mse", "mae"):
+        table = model._build_metrics_table(
+            problem, name, x, x_hat, row_labels, delta
+        )
+        mean_row = table[-1]
+        assert mean_row[0] == "mean"
+        np.testing.assert_allclose(mean_row[1:-1].astype(float), state_means[name])
+        np.testing.assert_allclose(float(mean_row[-1]), msep[name])
 
 
 def test_metric_filter_interpolates_offgrid_obs_times():

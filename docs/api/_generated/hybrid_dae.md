@@ -68,7 +68,7 @@ termination condition lands on ``self.termination``.
 **Parameters**
 
 - **`problem`** (`ProblemDefinition`) — Must carry observations (``obs_times`` / ``obs_values``), set directly or via :func:`generate_data`.
-- **`metrics`** (`Optional[list[str]]`, default `None`) — List of metrics to be printed after training. Comparisons per state variable, per trajectory. Options: `mse`, `rmse`, `mae`.
+- **`metrics`** (`Optional[list[str]]`, default `None`) — Metrics to print after training, comparing the fitted trajectories against ``problem``'s observations per state variable and trajectory. Options: ``mse``, ``rmse``, ``mae``. Each table adds a final ``N<METRIC>`` column holding the range-normalized metric per trajectory (each state's metric divided by that state's observed min-max range, then averaged over the states). The bottom ``mean`` row reports the per-state mean across trajectories; its last cell is the mean of the normalized column, a single overall goodness-of-fit scalar that for ``mse`` is the MSEP (mean squared error performance metric) of Industrial & Engineering Chemistry Research 61(25), 8658 (doi:10.1021/acs.iecr.1c04507).
 - **`tee`** (`bool`, default `False`) — Stream solver output to stdout (simultaneous method only).
 
 **Returns**
@@ -100,7 +100,7 @@ a non-optimal solve raises a ``UserWarning``.
 - **`problem`** (`ProblemDefinition`) — The problem to predict, e.g. the training system with new initial conditions. Observations are not required unless ``eval_metrics`` is set.
 - **`slack_coef`** (`float`, default `0.0`) — 0 (default) enforces the NN equality as a hard constraint; > 0 relaxes it with l1 slack variables (see :func:`solve_inference`).
 - **`solver_options`** (`Optional[SolverConfig]`, default `None`) — NLP solver options for this inference solve. Defaults to the solver's own defaults (independent of the constructor's fit-time ``solver_options``), so a bare ``predict`` matches a bare :func:`solve_inference` call.
-- **`eval_metrics`** (`Optional[list[str]]`, default `None`) — Metrics to print, comparing the prediction against ``problem``'s observations per state variable and trajectory. Options: ``mse``, ``rmse``, ``mae``. Requires ``problem`` to carry observations.
+- **`eval_metrics`** (`Optional[list[str]]`, default `None`) — Metrics to print, comparing the prediction against ``problem``'s observations per state variable and trajectory. Options: ``mse``, ``rmse``, ``mae``. The table has the same layout as :meth:`fit`'s ``metrics``: a range-normalized ``N<METRIC>`` column and a ``mean`` row whose last cell is the mean normalized value (the MSEP for ``mse``). Requires ``problem`` to carry observations.
 - **`tee`** (`bool`, default `False`) — Stream solver output to stdout.
 
 **Returns**

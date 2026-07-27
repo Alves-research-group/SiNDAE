@@ -289,7 +289,7 @@ class HybridDAE:
         if tc != "optimal":
             warnings.warn(
                 f"HybridDAE {stage} solve terminated with {tc!r} (not "
-                f"optimal); results may be unreliable.",
+                f"optimal)",
                 stacklevel=3,
             )
         return tc
@@ -313,8 +313,18 @@ class HybridDAE:
             Must carry observations (``obs_times`` / ``obs_values``), set
             directly or via :func:`generate_data`.
         metrics : Optional[list[str]]
-            List of metrics to be printed after training. Comparisons per
-            state variable, per trajectory. Options: `mse`, `rmse`, `mae`.
+            Metrics to print after training, comparing the fitted trajectories
+            against ``problem``'s observations per state variable and
+            trajectory. Options: ``mse``, ``rmse``, ``mae``. Each table adds a
+            final ``N<METRIC>`` column holding the range-normalized metric per
+            trajectory (each state's metric divided by that state's observed
+            min-max range, then averaged over the states). The bottom ``mean``
+            row reports the per-state mean across trajectories; its last cell
+            is the mean of the normalized column, a single overall
+            goodness-of-fit scalar that for ``mse`` is the MSEP (mean squared
+            error performance metric) of Industrial & Engineering Chemistry
+            Research 61(25), 8658 (doi:10.1021/acs.iecr.1c04507).
+
         tee : bool
             Stream solver output to stdout (simultaneous method only).
 
@@ -394,19 +404,67 @@ class HybridDAE:
         self.io_names = io_names
 
         if metrics:
-            x, x_hat = _filter_data_from_collocation_points(problem, self.trained_data)
-            row_labels = np.asarray([[f"traj_{i}"] for i in range(problem.num_trajectories)])
-            print("=== Per Trajectory Metrics ===")
-            for metric in metrics:
-                print(f"{metric.upper()}: ")    
-                metric_table = np.hstack((row_labels, _METRICS[metric](x, x_hat)))
-                print(tabulate(
-                    tabular_data=metric_table,
-                    headers=[f"x_{i}" for i in range(problem.obs_dim)],
-                    tablefmt="fancy_grid"
-                ))
+            self._print_metrics(problem, self.trained_data, metrics)
 
         return self
+
+    def _print_metrics(self, problem, data, metrics):
+        """Print a per-trajectory metrics table for each name in ``metrics``.
+
+        ``data`` is the solved :class:`InstanceData` (training or inference)
+        whose observed states are compared against ``problem``'s observations.
+        Columns are the per-state metric (``x_0 ... x_{K-1}``) followed by the
+        range-normalized ``N<METRIC>`` column; the final ``mean`` row holds the
+        per-state mean across trajectories and, in its last cell, the mean of
+        the normalized column (see :meth:`_build_metrics_table`).
+        """
+        x, x_hat = _filter_data_from_collocation_points(problem, data)
+        row_labels = np.asarray(
+            [[f"traj_{i}"] for i in range(problem.num_trajectories)]
+        )
+        delta = np.max(problem.obs_values, axis=1) - np.min(problem.obs_values, axis=1)
+
+        print("=== Per Trajectory Metrics ===")
+        for metric in metrics:
+            print(f"{metric.upper()}: ")
+            metric_table = self._build_metrics_table(
+                problem, metric, x, x_hat, row_labels, delta
+            )
+            headers = [f"x_{i}" for i in range(problem.obs_dim)]
+            headers.append(f"N{metric.upper()}")
+            print(tabulate(
+                tabular_data=metric_table,
+                headers=headers,
+                tablefmt="fancy_grid",
+            ))
+
+    def _build_metrics_table(self, problem, metric, x, x_hat, row_labels, delta):
+        """Assemble the rendered table for one metric.
+
+        Each trajectory row is the per-state metric plus a range-normalized
+        value ``N``: each state's metric divided by that state's observed
+        min-max range ``delta``, averaged over the states.  The appended
+        ``mean`` row is the per-state mean across trajectories; its final cell
+        is the mean of ``N`` over trajectories.  For ``metric="mse"`` that
+        final scalar is the MSEP (mean squared error performance metric) used
+        as a single overall goodness-of-fit score in Industrial & Engineering
+        Chemistry Research 61(25), 8658 (doi:10.1021/acs.iecr.1c04507).
+        """
+        per_traj_metric = _METRICS[metric](x, x_hat)
+
+        # Range-normalized metric per trajectory: divide each state's metric by
+        # that state's observed min-max range, then average over the states.
+        N_metric = np.mean(per_traj_metric / delta, axis=1, keepdims=True)
+
+        body = np.hstack((row_labels, per_traj_metric, N_metric))
+
+        # Bottom summary row: per-state mean across trajectories, then the mean
+        # of the normalized column (the MSEP when metric == "mse").
+        state_means = np.mean(per_traj_metric, axis=0)
+        mean_norm = np.mean(N_metric)
+        mean_row = np.hstack((["mean"], state_means, [mean_norm]))
+
+        return np.vstack((body, mean_row))
 
     def predict(
         self,
@@ -440,7 +498,10 @@ class HybridDAE:
         eval_metrics : Optional[list[str]]
             Metrics to print, comparing the prediction against ``problem``'s
             observations per state variable and trajectory.  Options: ``mse``,
-            ``rmse``, ``mae``.  Requires ``problem`` to carry observations.
+            ``rmse``, ``mae``.  The table has the same layout as :meth:`fit`'s
+            ``metrics``: a range-normalized ``N<METRIC>`` column and a ``mean``
+            row whose last cell is the mean normalized value (the MSEP for
+            ``mse``).  Requires ``problem`` to carry observations.
         tee : bool
             Stream solver output to stdout.
 
@@ -457,6 +518,14 @@ class HybridDAE:
                 "evaluation metrics not available without `obs_values` or 'obs_times` "
                 "defined for `problem: ProblemDefinition` arg"
             )
+
+        if eval_metrics:
+            for metric in eval_metrics:
+                if metric not in _METRICS:
+                    raise ValueError(
+                        f'metric: "{metric}" not available '
+                        f"please choose a metric from: {_METRICS.keys()}"
+                    )
 
         if (problem.input_dim, problem.z_dim) != (self._net.in_size,
                                                   self._net.out_size):
@@ -479,17 +548,7 @@ class HybridDAE:
         inference_data = extract_instance_data(problem, m)
 
         if eval_metrics:
-            x, x_hat = _filter_data_from_collocation_points(problem, inference_data)
-            row_labels = np.asarray([[f"traj_{i}"] for i in range(problem.num_trajectories)])
-            print("=== Per Trajectory Metrics ===")
-            for metric in eval_metrics:
-                print(f"{metric.upper()}: ")    
-                metric_table = np.hstack((row_labels, _METRICS[metric](x, x_hat)))
-                print(tabulate(
-                    tabular_data=metric_table,
-                    headers=[f"x_{i}" for i in range(problem.obs_dim)],
-                    tablefmt="fancy_grid"
-                ))
+            self._print_metrics(problem, inference_data, eval_metrics)
 
         return inference_data
 

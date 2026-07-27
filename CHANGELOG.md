@@ -61,6 +61,13 @@ All notable user-visible changes to SiNDAE. The format follows
   prediction against the problem's observations. The prediction is evaluated at
   the observation times by interpolation, so the metrics are correct even when
   training was re-discretized to a different grid than the data was generated on.
+  Each table adds a range-normalized `N<METRIC>` column (each state's metric
+  divided by that state's observed min-max range, averaged over the states) and a
+  `mean` summary row (per-state mean across trajectories); the last cell of that
+  row is the mean normalized value, a single overall goodness-of-fit score that
+  for `mse` is the MSEP (mean squared error performance metric,
+  doi:10.1021/acs.iecr.1c04507). `predict(eval_metrics=[...])` now produces this
+  same table and rejects an unknown metric name up front.
 
 ### Changed
 - The stage functions' NLP backend selector is now `nlp_solver=` (was
