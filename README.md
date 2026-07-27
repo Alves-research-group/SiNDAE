@@ -207,6 +207,22 @@ generation (`add_true_output_constraints`, used only by `generate_data`). See
 [`sindae/example_problems.py`](sindae/example_problems.py) for complete
 implementations of the four-tank DAE, Leslie-Gower ODE, and fed-batch bioreactor.
 
+## Hybrid model development with Claude
+
+The hard part of hybrid modeling is usually not the API. It is deciding which term to
+hand to the network, translating the resulting equations into a `ProblemDefinition`,
+and reading a solve that did not converge. [`sindae-skills/`](sindae-skills/) packages
+that knowledge for [Claude](https://claude.com/claude-code): a set of reference
+documents covering hybridization strategy, method and solver selection, worked
+reference problems, and a failure playbook, plus the instructions that drive them.
+
+Copy the bundle into your own modeling project and Claude will ask you about
+the process, draft the governing equations, and, critically, render them as LaTeX and
+refine the model with you before writing or running any code.
+
+See [`sindae-skills/README.md`](sindae-skills/README.md) for setup, which takes one
+copy command, and for what the assistant is and is not allowed to do on your behalf.
+
 ## Citation
 
 ```bibtex
