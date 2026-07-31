@@ -15,10 +15,11 @@ plots/
 .claude/
 .pytest_cache/
 CHANGES.md
-CLAUDE.md
+/CLAUDE.md
 CONTEXT.md
 dev/
 .ruff_cache/
+sindae-skills/microalgae-model-example/
 
 # MyST build outputs
 _build
