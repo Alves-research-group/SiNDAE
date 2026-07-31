@@ -31,10 +31,10 @@ session. Copy the bundle so that `CLAUDE.md` lands at the root of the project wh
 your data and your model code are saved:
 
 ```bash
-mkdir my-bioreactor-model
-cp /path/to/SiNDAE/sindae-skills/CLAUDE.md /my-bioreactor-model/
-cp /path/to/SiNDAE/sindae-skills/skills    /my-bioreactor-model/.claude/skills/
-cd /my-bioreactor-model
+mkdir -p my-bioreactor-model/.claude
+cp    /path/to/SiNDAE/sindae-skills/CLAUDE.md my-bioreactor-model/
+cp -r /path/to/SiNDAE/sindae-skills/skills    my-bioreactor-model/.claude/skills
+cd my-bioreactor-model
 claude
 ```
 
@@ -45,19 +45,27 @@ The resulting layout:
 ```
 my-bioreactor-model/
   CLAUDE.md             <- loaded automatically at session start
-    .claude/
-      skills/           <- read on demand, as CLAUDE.md directs
+  .claude/
+    skills/             <- read on demand, as CLAUDE.md directs
   data/                 <- your measurements
 ```
 
-If you already have a `CLAUDE.md` in that project, do not overwrite it. Append the
-contents of this one, or keep yours and add a line pointing at the bundle:
+If you already have a `CLAUDE.md` in that project, do not overwrite it. Either append
+the contents of this one, or save this one under another name and add an import line
+to yours pointing at it:
 
-Verify it took effect by opening Claude in the directory of you project and running the command in the Claude code:
-```python
+```markdown
+For any hybrid modeling work, follow @sindae-CLAUDE.md.
+```
+
+Verify it took effect by opening Claude in the directory of your project and running
+this command in Claude Code:
+
+```
 /memory
 ```
-this should open the CLAUDE.md file we just moved into your directory. 
+
+This should list the CLAUDE.md file you just copied into your directory.
 
 ### Option B: Claude Desktop or claude.ai
 

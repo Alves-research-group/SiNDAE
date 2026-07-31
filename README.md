@@ -88,9 +88,9 @@ model = sd.HybridDAE(
     method="simultaneous",              # or "decomposition"
     net=mlp,
     train=sd.SimultaneousConfig(reg_coef=1e-3),
-    smoother=sd.SmootherConfig(reg_coef=10.0)
-    pretrain=sd.PretrainConfig(epochs=200, batch_size=32, reg_coef=1e-3)
-    solver_options=sd.SolverConfig(tol=1e-6, max_iter=1000, hessian_approximation='exact')
+    smoother=sd.SmootherConfig(smooth_coef=10.0),
+    pretrain=sd.PretrainConfig(epochs=200, batch_size=32, reg_coef=1e-3),
+    solver_options=sd.SolverConfig(tol=1e-6, max_iter=1000, hessian_approximation='exact'),
 )
 model.fit(problem)                      # smoother -> pretrain -> train
 
@@ -106,7 +106,7 @@ See the [Quickstart guide](docs/quickstart.md) for the full walkthrough.
 
 A typical workflow has four stages: build a problem, solve a *smoother* to get smooth
 warm-start trajectories and normalization statistics, pre-train the network on those,
-then train the hybrid model with one of the two methods below. `HybridDAE.fit` wraps each of these stages in to one function, where the method can be specified with the flag `method=`; the entry points below give stage-level control.
+then train the hybrid model with one of the two methods below. `HybridDAE.fit` wraps each of these stages into one function, where the method can be specified with the flag `method=`; the entry points below give stage-level control.
 
 | Method | Entry point |  |
 |---------|-------------|------|
@@ -114,14 +114,14 @@ then train the hybrid model with one of the two methods below. `HybridDAE.fit` w
 | Decomposition | `HybridDAE.fit(method='decomposition')`| An outer Adam loop updates network weights while each inner step solves the DAE with network weights fixed and obtains gradients computing the sensitivity of the inner solve. Supports MPI across trajectories. |
 
 Both require the network to be twice continuously differentiable. Accordingly, the activation functions available in SiNDAE consist of smooth activations (`tanh`, `softplus`, `swish`) in the `SimpleMLP` class. See
-[Defining a Network Architecture](docs/api/network_architecture.md) on how to define your own network strcutre.
+[Defining a Network Architecture](docs/api/network_architecture.md) on how to define your own network structure.
 
 ## Documentation
 
 [INSERT PUBLISHED DOCS WEBSITE HERE]
 
 ## Examples
-Rendered notebooks in [`docs/examples_gallery/`](docs/examples_gallery/) and show some of the package capabilities:
+Rendered notebooks in [`docs/examples_gallery/`](docs/examples_gallery/) show some of the package capabilities:
 
 | Notebook | Demonstrates |
 |----------|--------------|
@@ -131,7 +131,7 @@ Rendered notebooks in [`docs/examples_gallery/`](docs/examples_gallery/) and sho
 | `fedbatch_partial_obs_example.ipynb` | Fedbatch bioreactor example using only partially observed states |
 | `fedbatch_validation_example.ipynb` | Fedbatch bioreactor example determining optimal network size |
 
-The same systems are also available as runnable scripts in [`examples/`](examples/) showcasing the fully configurable workflow `HybridDAE` encapsulates.:
+The same systems are also available as runnable scripts in [`examples/`](examples/) showcasing the fully configurable workflow `HybridDAE` encapsulates:
 
 | Script | System |
 |--------|--------|
