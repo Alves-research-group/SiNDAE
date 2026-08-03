@@ -18,14 +18,17 @@ SiNDAE is the companion code to
 [*A simultaneous approach for training neural differential-algebraic systems of
 equations*](https://arxiv.org/abs/2504.04665) (Lueg et al., 2025).
 
+Authors:
+- [Laurens Lueg](https://github.com/llueg)
+- [Nicolas Smits](https://github.com/nicksmits1)
+- [Victor Alves](https://github.com/victoraalves)
+
 ## Features
 
-- **A scikit-learn-style facade**: `HybridDAE(...)` runs the whole pipeline behind
+- **A scikit-learn-style interface**: `HybridDAE(...)` runs the whole pipeline behind
   `fit(problem)` / `predict(new_problem)`, with every stage still configurable.
-- **Two training backends** behind a symmetric API: a *simultaneous* approach that
-  solves for the network weights and the trajectory jointly in one NLP, and a
-  *decomposition* approach that wraps an outer Adam loop around inner DAE solves with
-  implicit-differentiation gradients (and supports MPI).
+- **Two training backends** behind a symmetric API: either the *simultaneous* approach or the
+  *decomposition* approach.
 - **ODEs and high-index DAEs**, discretized with Pyomo collocation.
 - **Bring your own data**: fit to measured time series, including the partially
   observed case where only some states are recorded.
@@ -36,6 +39,7 @@ equations*](https://arxiv.org/abs/2504.04665) (Lueg et al., 2025).
 - **Binary-free install**: the pure-Rust [POUNCE](https://github.com/jkitchin/pounce)
   and [FERAL](https://github.com/jkitchin/feral) solvers replace HSL/MA27, so no
   licensed binaries are required.
+- **Trained model distribution**: export your trained neural network as a JAX serialized .eqx   file, an ONNX file, an OMLT `NetworkDefinition`, or a JSON.
 
 ## Installation
 
@@ -74,7 +78,7 @@ import sindae as sd
 
 jax.config.update("jax_enable_x64", True)
 
-problem = sd.LeslieGowerProblem(nfe=40, ncp=3)
+problem = sd.LeslieGowerProblem(nfe=40, ncp=3)      # or define your own problem (see below)
 sd.generate_data(problem, noise_std=[0.05, 0.05])   # or load your own measurements
 
 mlp = sd.SimpleMLP(in_size=2, out_size=1, widths=[16, 16],
@@ -84,6 +88,9 @@ model = sd.HybridDAE(
     method="simultaneous",              # or "decomposition"
     net=mlp,
     train=sd.SimultaneousConfig(reg_coef=1e-3),
+    smoother=sd.SmootherConfig(smooth_coef=10.0),
+    pretrain=sd.PretrainConfig(epochs=200, batch_size=32, reg_coef=1e-3),
+    solver_options=sd.SolverConfig(tol=1e-6, max_iter=1000, hessian_approximation='exact'),
 )
 model.fit(problem)                      # smoother -> pretrain -> train
 
@@ -91,39 +98,7 @@ new_problem = sd.LeslieGowerProblem(ics=np.array([[1.2, 0.15]]), nfe=40, ncp=3)
 pred = model.predict(new_problem, slack_coef=1e-5)   # inference on new conditions
 ```
 
-The stage functions behind the wrapper remain available for additional control:
-
-```python
-import jax
-from sindae import SimpleMLP, generate_data, extract_instance_data
-from sindae.algorithms.smoother import solve_smoother
-from sindae.algorithms.simultaneous.train import SimultaneousConfig, solve_simultaneous
-from sindae.example_problems import LeslieGowerProblem
-
-jax.config.update("jax_enable_x64", True)
-
-problem = LeslieGowerProblem(nfe=40, ncp=3)
-mlp = SimpleMLP(
-    in_size=problem.input_dim, out_size=problem.z_dim,
-    widths=[16, 16], activations=[jax.nn.softplus] * 2,
-)
-
-data       = generate_data(problem, noise_std=[0.05, 0.05])   # or load your own measurements
-smoother_m = solve_smoother(problem, mlp)                      # smooth, warm-start the solve
-cfg        = SimultaneousConfig(use_gbm=False, reg_coef=1e-3)
-trained_m, mlp = solve_simultaneous(problem, mlp, cfg, data=data, smoother_model=smoother_m)
-
-trained = extract_instance_data(problem, trained_m)            # states + learned term
-```
-
-The decomposition approach is a drop-in alternative with the same call shape:
-
-```python
-from sindae.algorithms.decomp.train import DecompConfig, train_decomp
-
-cfg = DecompConfig(n_steps=300, lr=5e-3)
-trained_m, mlp, history = train_decomp(problem, mlp, cfg, data=data, smoother_model=smoother_m)
-```
+Change the method to `decomposition` and use `train=sd.DecompConfig(...)` to use the decomposition approach.
 
 See the [Quickstart guide](docs/quickstart.md) for the full walkthrough.
 
@@ -131,38 +106,32 @@ See the [Quickstart guide](docs/quickstart.md) for the full walkthrough.
 
 A typical workflow has four stages: build a problem, solve a *smoother* to get smooth
 warm-start trajectories and normalization statistics, pre-train the network on those,
-then train the hybrid model with one of the two backends. `HybridDAE.fit` runs all
-four; the entry points below give stage-level control.
+then train the hybrid model with one of the two methods below. `HybridDAE.fit` wraps each of these stages into one function, where the method can be specified with the flag `method=`; the entry points below give stage-level control.
 
-| Backend | Entry point | Idea |
+| Method | Entry point |  |
 |---------|-------------|------|
-| Simultaneous | `solve_simultaneous` | Network weights, states, and algebraic variables are decision variables in a single NLP solved by POUNCE (exact Hessian, or L-BFGS for the grey-box variant). |
-| Decomposition | `train_decomp` | An outer Adam loop updates the weights; each step solves the DAE and obtains gradients by implicit differentiation of the KKT conditions. Supports MPI across trajectories. |
+| Simultaneous | `HybridDAE.fit(method='simultaneous')` | Network weights, states, and algebraic variables are decision variables in a single NLP solved by POUNCE or IPOPT using either exact Hessian, or L-BFGS for the grey-box variant. |
+| Decomposition | `HybridDAE.fit(method='decomposition')`| An outer Adam loop updates network weights while each inner step solves the DAE with network weights fixed and obtains gradients computing the sensitivity of the inner solve. Supports MPI across trajectories. |
 
-Both require the network to be twice continuously differentiable, so SiNDAE uses
-smooth activations (`tanh`, `softplus`, `swish`). See
-[Defining a Network Architecture](docs/api/network_architecture.md).
+Both require the network to be twice continuously differentiable. Accordingly, the activation functions available in SiNDAE consist of smooth activations (`tanh`, `softplus`, `swish`) in the `SimpleMLP` class. See
+[Defining a Network Architecture](docs/api/network_architecture.md) on how to define your own network structure.
 
 ## Documentation
-
-The full documentation is a [Jupyter Book](https://jupyterbook.org/) .
 
 [INSERT PUBLISHED DOCS WEBSITE HERE]
 
 ## Examples
-
-Rendered notebooks live in [`docs/examples_gallery/`](docs/examples_gallery/) and are
-organized around package capabilities:
+Rendered notebooks in [`docs/examples_gallery/`](docs/examples_gallery/) show some of the package capabilities:
 
 | Notebook | Demonstrates |
 |----------|--------------|
-| `four_tank_example.ipynb` | End-to-end simultaneous workflow on an index-2 DAE |
+| `four_tank_example.ipynb` | Simultaneous training on an index-2 DAE |
 | `leslie_gower_example.ipynb` | Decomposition training with a custom Lyapunov path constraint |
-| `fedbatch_example.ipynb` | Loading measured data from a CSV and inference under new conditions |
-| `fedbatch_partial_obs_example.ipynb` | Fitting when only some states are measured, and reconstructing the rest |
-| `fedbatch_validation_example.ipynb` | Held-out validation and choosing the network size |
+| `fedbatch_example.ipynb` | Fedbatch bioreactor example using measured data |
+| `fedbatch_partial_obs_example.ipynb` | Fedbatch bioreactor example using only partially observed states |
+| `fedbatch_validation_example.ipynb` | Fedbatch bioreactor example determining optimal network size |
 
-The same systems are also available as runnable scripts in [`examples/`](examples/):
+The same systems are also available as runnable scripts in [`examples/`](examples/) showcasing the fully configurable workflow `HybridDAE` encapsulates:
 
 | Script | System |
 |--------|--------|
@@ -206,6 +175,14 @@ extra variables (`get_aux_vars`), or define the true term for synthetic data
 generation (`add_true_output_constraints`, used only by `generate_data`). See
 [`sindae/example_problems.py`](sindae/example_problems.py) for complete
 implementations of the four-tank DAE, Leslie-Gower ODE, and fed-batch bioreactor.
+
+## Hybrid model development with Claude
+
+To reduce the learning curve of the package and streamline hybridizing a model, defining a `ProblemDefinition`, selecting a solution method, and solving the model to convergence, a CLAUDE.md file along with a set of skills is included in [`sindae-skills/`](sindae-skills/). 
+
+Copy the bundle into your own modeling project and [Claude](https://claude.com/claude-code) will ask you about the process, draft the governing equations, and, critically, render them and refine the model with you before writing or running any code.
+
+See [`sindae-skills/README.md`](sindae-skills/README.md) for setup.
 
 ## Citation
 
