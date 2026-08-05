@@ -1,0 +1,225 @@
+@article{lueg2025simultaneous,
+  title   = {A simultaneous approach for training neural differential-algebraic systems of equations},
+  author  = {Lueg, Laurens R and Alves, Victor and Schicksnus, Daniel and Kitchin, John R and Laird, Carl D and Biegler, Lorenz T},
+  journal = {arXiv preprint arXiv:2504.04665},
+  year    = {2025},
+  url     = {https://arxiv.org/abs/2504.04665},
+}
+
+@article{chen2018neural,
+  title   = {Neural ordinary differential equations},
+  author  = {Chen, Ricky T. Q. and Rubanova, Yulia and Bettencourt, Jesse and Duvenaud, David},
+  journal = {Advances in Neural Information Processing Systems},
+  volume  = {31},
+  year    = {2018},
+}
+
+@article{rackauckas2021universal,
+  title   = {Universal differential equations for scientific machine learning},
+  author  = {Rackauckas, Christopher and Ma, Yingbo and Martensen, Julius and Warner, Collin and Zubov, Kirill and Supekar, Rohit and Skinner, Dominic and Ramadhan, Ali and Edelman, Alan},
+  journal = {arXiv preprint arXiv:2001.04385},
+  year    = {2021},
+}
+
+@article{wachter2006ipopt,
+  title   = {On the implementation of an interior-point filter line-search algorithm for large-scale nonlinear programming},
+  author  = {W{\"a}chter, Andreas and Biegler, Lorenz T},
+  journal = {Mathematical Programming},
+  volume  = {106},
+  number  = {1},
+  pages   = {25--57},
+  year    = {2006},
+}
+
+@article{hart2011pyomo,
+  title   = {Pyomo: modeling and solving mathematical programs in Python},
+  author  = {Hart, William E and Watson, Jean-Paul and Woodruff, David L},
+  journal = {Mathematical Programming Computation},
+  volume  = {3},
+  number  = {3},
+  pages   = {219--260},
+  year    = {2011},
+}
+
+@software{jax2018github,
+  author  = {Bradbury, James and Frostig, Roy and Hawkins, Peter and Johnson, Matthew James and Leary, Chris and Maclaurin, Dougal and Necula, George and Paszke, Adam and VanderPlas, Jake and Wanderman-Milne, Skye and Zhang, Qiao},
+  title   = {{JAX}: composable transformations of {Python}+{NumPy} programs},
+  url     = {http://github.com/google/jax},
+  year    = {2018},
+}
+
+@article{kidger2021equinox,
+  title   = {Equinox: neural networks in JAX via callable PyTrees and filtered transformations},
+  author  = {Kidger, Patrick and Garcia, Cristian},
+  journal = {arXiv preprint arXiv:2111.00254},
+  year    = {2021},
+}
+
+@article{Raissi2019PINNs,
+       author = {{Raissi}, M. and {Perdikaris}, P. and {Karniadakis}, G.~E.},
+        title = "{Physics-informed neural networks: A deep learning framework for solving forward and inverse problems involving nonlinear partial differential equations}",
+      journal = {Journal of Computational Physics},
+     keywords = {Data-driven scientific computing, Machine learning, Predictive modeling, Runge-Kutta methods, Nonlinear dynamics},
+         year = 2019,
+        month = feb,
+       volume = {378},
+        pages = {686-707},
+          doi = {10.1016/j.jcp.2018.10.045},
+       adsurl = {https://ui.adsabs.harvard.edu/abs/2019JCoPh.378..686R},
+      adsnote = {Provided by the SAO/NASA Astrophysics Data System}
+}
+
+@article{Bangi2022PINNs,
+title = {Physics-informed neural networks for hybrid modeling of lab-scale batch fermentation for β-carotene production using Saccharomyces cerevisiae},
+journal = {Chemical Engineering Research and Design},
+volume = {179},
+pages = {415-423},
+year = {2022},
+issn = {0263-8762},
+doi = {https://doi.org/10.1016/j.cherd.2022.01.041},
+url = {https://www.sciencedirect.com/science/article/pii/S0263876222000491},
+author = {Mohammed Saad Faizan Bangi and Katy Kao and Joseph Sang-Il Kwon},
+keywords = {Physics-informed neural networks, Universal differential equations, Hybrid modeling, Batch fermentation, -Carotene},
+abstract = {β-Carotene has a positive impact on human health as a precursor of vitamin A. Building a kinetic model for its production using Saccharomyces cerevisiae in a batch fermentation process is challenging as it is difficult to quantify all the complex phenomena within the process. Any knowledge gap in the kinetic model can be reduced by utilizing data. Therefore, in this work, a hybrid model is built using the universal differential equations (UDEs) approach for accurately approximating the unknown dynamics of the process and thereby, increasing the overall accuracy of the model. In UDE approach, a neural ordinary differential equation that approximates the derivatives of the previously unknown dynamics of the batch fermentation process is integrated with the ODEs of its kinetic model to give a hybrid model with superior accuracy. Additionally, prior knowledge about the process is incorporated during the hybrid model training to ensure faster convergence of its parameters.}
+}
+
+@article{Narayanan2022Hybrid,
+    author = {Narayanan, Harini and Luna, Martin and Sokolov, Michael and Butté, Alessandro and Morbidelli, Massimo},
+    title = {Hybrid Models Based on Machine Learning and an Increasing
+Degree of Process Knowledge: Application to Cell Culture Processes},
+    journal = {Industrial & Engineering Chemistry Research},
+    volume = {61},
+    number = {25},
+    pages = {8658-8672},
+    year = {2022},
+    month = {06},
+    abstract = {In this work, we aim to introduce
+the concept of the degree of
+hybridization for cell culture process modeling. We propose that a
+family of hybrid models can be created with varying fractions of process
+knowledge explicitly encoded in the model, defined as the degree of
+hybridization, with the two extremes being fully data-driven (0\%)
+and fully mechanistic (100\%) models. Subsequently, the aim is to compare
+the different models based on different metrics: model accuracy, the
+experimental effort for model development, extrapolation capability,
+the capability of generating new process understanding, and ease of
+utilization in practice, and to demonstrate that this could provide
+an additional degree of freedom for model selection. We could quantitatively
+demonstrate that for the cell culture process, either extreme has
+limitations. The major drawback of the data-driven model is the poor
+performance at low data availability as well as poor extrapolation
+capability, inability to provide process understanding, and subsequently
+inefficient practical application. On the other hand, the mechanistic
+model has poor accuracy due to the addition of excessive knowledge
+that then biases the models. Moving from data-driven to mechanistic
+models, the performance of the models improves progressively, as long
+as the knowledge added is not too biased. We show that the choice
+of the hybrid models to be used is based on the goal of model development.
+For instance, hybrid models including mass balances on each species
+show better performance in transferring models across different modes
+of operation. On the other hand, models with a higher degree of hybridization
+allow for more process interpretation possibilities. For modeling
+accuracy, amount of training data, extrapolation, and practical applications,
+the Hybrid Rate (HR) model is found to have the optimal degree of
+hybridization. This is likely due to the compromise between adding
+process knowledge and increasing the model parameters achieved by
+the HR model. The HR model features the incorporation of mass balance
+and channels the data-driven modeling to cell-specific rates, and
+thus these two pieces of information appear to be the most crucial
+ones. Finally, we believe that the concept will be instrumental in
+progressively developing and testing hypotheses about complex processes
+such as cell cultures.},
+    issn = {0888-5885},
+    doi = {10.1021/acs.iecr.1c04507},
+    url = {https://doi.org/10.1021/acs.iecr.1c04507},
+    eprint = {https://pubs.acs.org/iecred/article-pdf/61/25/8658/9185213/ie1c04507.pdf},
+}
+
+@article{Xiao2023PowerSystems,
+   title={Feasibility Study of Neural ODE and DAE Modules for Power System Dynamic Component Modeling},
+   volume={38},
+   ISSN={1558-0679},
+   url={http://dx.doi.org/10.1109/TPWRS.2022.3194570},
+   DOI={10.1109/tpwrs.2022.3194570},
+   number={3},
+   journal={IEEE Transactions on Power Systems},
+   publisher={Institute of Electrical and Electronics Engineers (IEEE)},
+   author={Xiao, Tannan and Chen, Ying and Huang, Shaowei and He, Tirui and Guan, Huizhe},
+   year={2023},
+   month=May, pages={2666–2678} }
+
+@article{Huang2025Wastewater,
+title = {Training stiff neural ordinary differential equations in data-driven wastewater process modelling},
+journal = {Journal of Environmental Management},
+volume = {373},
+pages = {123870},
+year = {2025},
+issn = {0301-4797},
+doi = {https://doi.org/10.1016/j.jenvman.2024.123870},
+url = {https://www.sciencedirect.com/science/article/pii/S030147972403857X},
+author = {Xiangjun Huang and Kyriakos Kandris and Evina Katsou}
+}
+
+@article{Mukherjee2025MEB,
+title = {Development of mass, energy, and thermodynamics constrained steady-state and dynamic neural networks for interconnected chemical systems},
+journal = {Chemical Engineering Science},
+volume = {309},
+pages = {121506},
+year = {2025},
+issn = {0009-2509},
+doi = {https://doi.org/10.1016/j.ces.2025.121506},
+url = {https://www.sciencedirect.com/science/article/pii/S000925092500329X},
+author = {Angan Mukherjee and Debangsu Bhattacharyya},
+keywords = {Neural networks, Mass conservation, Energy conservation, Thermodynamics constraints, Interconnected systems},
+abstract = {This paper discusses the development of steady-state and dynamic modeling algorithms for mass, energy, and thermodynamics constrained neural networks (METCNNs) for interconnected chemical process systems. The METCNN models can ‘exactly’ conserve the overall system mass and energy balances, as well as certain thermodynamics constraints during both training and forward problems. The proposed approaches can accommodate an outer layer integer programming problem for selection of the best thermodynamics model from a family of candidates given a particular transient dataset. The developed algorithms for both steady-state and dynamic METCNNs are tested for an interconnected chemical system in presence of noise and bias in training data. For all case studies considered in this work, it has been observed that the optimal METCNN models ensure exact conservation of system physics and consistently converge close to the system truth, even when trained against complex dynamic noisy measurements that do not necessarily satisfy the system physics.}
+}
+
+@article{scikit-learn,
+  title={Scikit-learn: Machine Learning in {P}ython},
+  author={Pedregosa, F. and Varoquaux, G. and Gramfort, A. and Michel, V.
+          and Thirion, B. and Grisel, O. and Blondel, M. and Prettenhofer, P.
+          and Weiss, R. and Dubourg, V. and Vanderplas, J. and Passos, A. and
+          Cournapeau, D. and Brucher, M. and Perrot, M. and Duchesnay, E.},
+  journal={Journal of Machine Learning Research},
+  volume={12},
+  pages={2825--2830},
+  year={2011}
+}
+
+@article{SparkMLlib,
+author = {Meng, Xiangrui and Bradley, Joseph and Yavuz, Burak and Sparks, Evan and Venkataraman, Shivaram and Liu, Davies and Freeman, Jeremy and Tsai, DB and Amde, Manish and Owen, Sean and Xin, Doris and Xin, Reynold and Franklin, Michael J. and Zadeh, Reza and Zaharia, Matei and Talwalkar, Ameet},
+title = {MLlib: machine learning in apache spark},
+year = {2016},
+issue_date = {January 2016},
+publisher = {JMLR.org},
+volume = {17},
+number = {1},
+issn = {1532-4435},
+abstract = {Apache Spark is a popular open-source platform for large-scale data processing that is well-suited for iterative machine learning tasks. In this paper we present MLlib, Spark's open-source distributed machine learning library. MLLIB provides efficient functionality for a wide range of learning settings and includes several underlying statistical, optimization, and linear algebra primitives. Shipped with Spark, MLLIB supports several languages and provides a high-level API that leverages Spark's rich ecosystem to simplify the development of end-to-end machine learning pipelines. MLLIB has experienced a rapid growth due to its vibrant open-source community of over 140 contributors, and includes extensive documentation to support further growth and to let users quickly get up to speed.},
+journal = {J. Mach. Learn. Res.},
+month = jan,
+pages = {1235–1241},
+numpages = {7},
+keywords = {scalable machine learning, distributed algorithms, apache spark}
+}
+
+@misc{kitchin2026pounce,
+  author       = {Kitchin, John R.},
+  title        = {POUNCE: A pure-Rust port of the Ipopt interior-point NLP solver},
+  year         = {2026},
+  publisher    = {GitHub},
+  journal      = {GitHub repository},
+  howpublished = {\url{https://github.com/jkitchin/pounce}},
+  url          = {https://github.com/jkitchin/pounce},
+  doi          = {10.5281/zenodo.21537291}
+}
+
+@misc{kitchin2026feral,
+  author       = {Kitchin, John R.},
+  title        = {Feral: A pure-Rust sparse symmetric indefinite linear solver with certified inertia counts},
+  year         = {2026},
+  publisher    = {GitHub},
+  journal      = {GitHub repository},
+  howpublished = {\url{https://github.com/jkitchin/feral}},
+  url          = {https://github.com/jkitchin/feral}
+}

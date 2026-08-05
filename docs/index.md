@@ -12,7 +12,7 @@ SiNDAE is the companion code to {cite}`lueg2025simultaneous`.
 
 ---
 
-## Two training algorithms
+## Training algorithms
 
 | Algorithm | Description |
 |-----------|-------------|
