@@ -67,9 +67,9 @@ dev = [
 include = ["sindae*"]
 
 [project.urls]
-Homepage = "https://github.com/llueg/SiNDAE"
-Documentation = "https://llueg.github.io/SiNDAE"
-Issues = "https://github.com/llueg/SiNDAE/issues"
+Homepage = "https://github.com/Alves-research-group/SiNDAE"
+Documentation = "https://alves-research-group.github.io/SiNDAE/"
+Issues = "https://github.com/Alves-research-group/SiNDAE/issues"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
