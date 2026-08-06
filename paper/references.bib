@@ -360,3 +360,37 @@ keywords = {scalable machine learning, distributed algorithms, apache spark}
   year    = {1992},
   doi     = {10.1002/aic.690381003}
 }
+
+@article{thompson1994modeling,
+author = {Thompson, Michael L. and Kramer, Mark A.},
+title = {Modeling chemical processes using prior knowledge and neural networks},
+journal = {AIChE Journal},
+volume = {40},
+number = {8},
+pages = {1328-1340},
+doi = {https://doi.org/10.1002/aic.690400806},
+url = {https://aiche.onlinelibrary.wiley.com/doi/abs/10.1002/aic.690400806},
+eprint = {https://aiche.onlinelibrary.wiley.com/doi/pdf/10.1002/aic.690400806},
+abstract = {Abstract We present a method for synthesizing chemical process models that combines prior knowledge and artificial neural networks. The inclusion of prior knowledge is investigated as a means of improving the neural network predictions when trained on sparse and noisy process data. Prior knowledge enters the hybrid model as a simple process model and first principle equations. The simple model controls the extrapolation of the hybrid in the regions of input space that lack training data. The first principle equations, such as mass and component balances, enforce equality constraints. The neural network compensates for inaccuracy in the prior model. In addition, inequality constraints are imposed during parameter estimation. For illustration, the approach is applied in predicting cell biomass and secondary metabolite in a fed-batch penicillin fermentation. Our results show that prior knowledge enhances the generalization capabilities of a pure neural network model. The approach is shown to require less data for parameter estimation, produce more accurate and consistent predictions, and provide more reliable extrapolation.},
+year = {1994}
+}
+
+@article{rodriguez2023pynumero,
+author = {Rodriguez, Jose S. and Parker, Robert B. and Laird, Carl D. and Nicholson, Bethany L. and Siirola, John D. and Bynum, Michael L.},
+title = {Scalable Parallel Nonlinear Optimization with PyNumero and Parapint},
+year = {2023},
+issue_date = {March-April 2023},
+publisher = {INFORMS},
+address = {Linthicum, MD, USA},
+volume = {35},
+number = {2},
+issn = {1526-5528},
+url = {https://doi.org/10.1287/ijoc.2023.1272},
+doi = {10.1287/ijoc.2023.1272},
+abstract = {We describe PyNumero, an open-source, object-oriented programming framework in Python that supports rapid development of performant parallel algorithms for structured nonlinear programming problems (NLP’s) using the Message Passing Interface (MPI). PyNumero provides three fundamental building blocks for developing NLP algorithms: a fast interface for calculating first and second derivatives with the AMPL Solver Library (ASL), a number of interfaces to efficient linear solvers, and block-structured vectors and matrices based on NumPy, SciPy, and MPI that support distributed parallel storage and computation. PyNumero’s design enables efficient, parallel algorithm development using high-level Python syntax while keeping expensive numerical calculations in fast, compiled implementations based on languages like C and Fortran. To demonstrate the utility of PyNumero, we also present Parapint, a Python package built on PyNumero for parallel solution of dynamic optimization problems. Parapint includes a parallel interior-point solver based on Schur-Complement decomposition. We illustrate the effectiveness of PyNumero for developing parallel algorithms with both code examples and scalability analyses for parallel matrix-vector dot products, parallel solution of structured systems of linear equations using Schur-Complement decomposition, and the parallel solution of a two-dimensional PDE optimal control problem. Our numerical results show nearly perfect scaling to more than 1,000 cores for large matrix-vector dot products and structured linear systems. Moreover, we obtain more than 354 times speedup for the optimal control example.History: Accepted by Alice Smith, EIC/Ted Ralphs, Area Editor/Software Tools.Funding: This work was funded in part by the Institute for the Design of Advanced Energy Systems (IDAES) with funding from the Office of Fossil Energy, Cross-Cutting Research, U.S. Department of Energy. This work was also funded by Sandia National Laboratories Laboratory Directed Research and Development (LDRD) program.Supplemental Material: The software that supports the findings of this study is available within the paper and its Supplemental Information () as well as from the IJOC GitHub software repository () at ().},
+journal = {INFORMS J. on Computing},
+month = mar,
+pages = {509–517},
+numpages = {9},
+keywords = {Python, parallel computing, decomposition algorithms, open-source optimization software, nonlinear programming}
+}

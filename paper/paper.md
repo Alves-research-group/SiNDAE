@@ -52,14 +52,28 @@ SiNDAE implements the simultaneous and decomposition approaches from *A Simultan
 Why is this package needed in the field? How would this package benefit the community? What frameworks in this python package built on? Dependency graph?
 
 
-Namely, SiNDAE makes use of a similar estimator object philosophy adapted for hybrid DAEs through the `HybridDAE` and `ProblemDefinition` entry points, reducing the learning curve for practitioners already familiar with similarly designed frameworks. In the same spirit of usability, unlike other Python packages making use of state of the art linear/nonlinear solvers (e.g. MA27 or IPOPT), SiNDAE features an entirely licensed-binary-free default installation by using the FERAL [@kitchin2026feral] and POUNCE [@kitchin2026pounce] solvers.
-
-
-![Dependency graph generated with [pydeps](https://github.com/thebjorn/pydeps/) showing the packages used in ``SiNDAE``.\label{fig:fig1}](./images/sindae_pydeps.png)
-
 lack of code sharing in the community [@mahanty2023hybrid]
 
 CLAUDE integration
+
+
+SiNDAE targets practitioners who hold or seek to develop mechanistic DAE model containing one or more unknown or poorly modeled terms, along with noisy and potentially incomplete time-series measurements of the system state variables. For these users the package covers the cases where existing hybrid modeling tooling stops. 
+
+---FIX---
+
+Unknown terms are learned inside index-2 DAEs rather than ODEs alone; only a subset of the states need be observed, since the mechanistic constraints supply the remainder; custom architectures are supported through a grey-box interface alongside the built-in multilayer perceptron; and the decomposition method distributes its per-trajectory subproblems across MPI ranks when a dataset contains many experiments.
+
+Prediction is itself a constrained solve. HybridDAE.predict embeds the trained network in a fresh problem and re-solves the mechanistic model, so extrapolation to initial conditions and operating regimes absent from the training data remains physically feasible by construction. Extrapolation capability is the property most consistently cited as the reason to prefer hybrid models over purely data-driven ones [@vonstosch2014hybrid; @herreraruiz2025hybrid], and holding the mechanistic equations as hard constraints at inference time is what preserves it. Trained networks export to Equinox, ONNX, JSON, or an OMLT NetworkDefinition [@ceccon2022omlt], so a model identified in SiNDAE can be reused directly as a surrogate inside a downstream Pyomo optimization problem.
+
+---FIX
+
+Namely, SiNDAE makes use of a similar estimator object philosophy adapted for hybrid DAEs through the `HybridDAE` and `ProblemDefinition` entry points, reducing the learning curve for practitioners already familiar with similarly designed frameworks. In the same spirit of usability, unlike other Python packages making use of state of the art linear/nonlinear solvers (e.g. MA27 or IPOPT), SiNDAE features an entirely licensed-binary-free default installation by using the FERAL [@kitchin2026feral] and POUNCE [@kitchin2026pounce] solvers.
+
+Reviews of hybrid modeling practice identify the absence of shared code and data in communal repositories as a direct hurdle to the exploration and expansion of these methods [@mahanty2023hybrid]. Solver licensing is a concrete form of that hurdle. Simultaneous dynamic optimization formulations of this size have conventionally been solved with IPOPT [@wachter2006ipopt] backed by a linear solver from the HSL collection such as MA27, which requires a separate license and a compiled installation, so a published result resting on that stack cannot be reproduced from a package index alone. SiNDAE therefore defaults to POUNCE [@kitchin2026pounce] for the nonlinear program and FERAL [@kitchin2026feral] for the underlying linear systems, both distributed as pip wheels free of license restrictions, and both capable of running the complete pipeline: smoothing, pre-training, simultaneous or decomposition training, and inference. IPOPT and cyipopt remain selectable backends for users who already have them, so the migration costs no functionality.
+
+The package builds on established scientific Python infrastructure. Pyomo and Pyomo.DAE [@bynum2021pyomo; @nicholson2018pyomodae] provide symbolic model construction and Lagrange-Radau collocation on finite elements, and Pyomo's PyNumero interface exposes the resulting NLP, its derivatives, and the KKT system used for implicit differentiation in the decomposition method. JAX [@jax2018github] and Equinox [@kidger2021equinox] define the network and supply the exact first and second derivatives the simultaneous formulation consumes, with optax providing the outer-loop Adam updates. NumPy, SciPy, and Matplotlib support data handling and visualization. \autoref{fig:fig1} shows the resulting dependency structure.
+
+![Dependency graph generated with [pydeps](https://github.com/thebjorn/pydeps/) showing the packages used in ``SiNDAE``.\label{fig:fig1}](./images/sindae_pydeps.png)
 
 # Vignette
 
