@@ -118,7 +118,7 @@ Both require the network to be twice continuously differentiable. Accordingly, t
 
 ## Documentation
 
-[INSERT PUBLISHED DOCS WEBSITE HERE]
+The complete documentation with detailed functionality explanations, examples, and optional dependencies can be found [here](https://alves-research-group.github.io/SiNDAE/).
 
 ## Examples
 Rendered notebooks in [`docs/examples_gallery/`](docs/examples_gallery/) show some of the package capabilities:

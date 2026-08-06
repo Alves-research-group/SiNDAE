@@ -1,8 +1,7 @@
-# Publish the sindae package to TestPyPI when a GitHub Release is published.
-#
-# Auth: PyPA Trusted Publishing (OIDC)
+# Publish sindae to PyPI when a GitHub Release is published.
+# Auth: PyPI API token in the repository secret PYPI_API_TOKEN.
 
-name: Publish to TestPyPI
+name: Upload Python Package on PyPI 🐍 📦
 
 on:
   release:
@@ -12,44 +11,33 @@ permissions:
   contents: read
 
 jobs:
-  publish:
+  deploy:
     runs-on: ubuntu-latest
-    environment:
-      name: testpypi
-      url: https://test.pypi.org/p/sindae
-    permissions:
-      contents: read     # checkout
-      id-token: write    # OIDC token for Trusted Publishing
+
     steps:
       - uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.x"
 
-      # pyproject.toml is the single source of truth for the version. Fail loudly
-      # if the release tag disagrees, so a mislabeled release cannot ship the
-      # wrong (immutable) version to the index.
-      - name: Verify tag matches pyproject version
+      # The release tag is the source of truth for the published version.
+      - name: Set version from release tag
         run: |
-          PKG_VERSION="$(python -c "import tomllib, pathlib; print(tomllib.loads(pathlib.Path('pyproject.toml').read_text())['project']['version'])")"
-          TAG="${GITHUB_REF_NAME#v}"
-          if [ "$PKG_VERSION" != "$TAG" ]; then
-            echo "::error::Release tag '$GITHUB_REF_NAME' (-> '$TAG') does not match pyproject.toml version '$PKG_VERSION'."
-            exit 1
-          fi
-          echo "Version OK: $PKG_VERSION"
-
-      - name: Install build tooling
-        run: |
-          python -m pip install --upgrade pip
-          pip install build
+          VERSION="${GITHUB_REF_NAME#v}"
+          sed -i -E "s/^version = \".*\"$/version = \"${VERSION}\"/" pyproject.toml
+          grep -qx "version = \"${VERSION}\"" pyproject.toml \
+            || { echo "::error::Could not set version ${VERSION} in pyproject.toml"; exit 1; }
 
       - name: Build sdist and wheel
-        run: python -m build
+        run: |
+          python -m pip install --upgrade pip build
+          python -m build
 
-      - name: Publish to TestPyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33  # v1.14.2
         with:
-          repository-url: https://test.pypi.org/legacy/
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
+          attestations: false  # unavailable with token auth
