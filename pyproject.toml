@@ -14,16 +14,13 @@ readme = "README.md"
 license = "MIT"
 license-files = ["LICEN[CS]E*"]
 authors = [
-    { name = "Laurens Lueg", email = "llueg@andrew.cmu.edu" },
-]
-maintainers = [
-    { name = "Nicolas Smits", email = "nsmits@andrew.cmu.edu" },
+    { name = "Laurens Lueg", email = "llueg@andrew.cmu.edu" }, { name = "Nicolas Smits", email = "nsmits@andrew.cmu.edu" }, { name= "Victor Alves", email = "vcunhaal@andrew.cmu.edu"}
 ]
 keywords = ["scientific machine learning", "neural ODE", "DAE", "implicit differentiation", "UDE"]
 classifiers = [
-    "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research",
     "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Programming Language :: Python :: 3",
 ]
 dependencies = [
