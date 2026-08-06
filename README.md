@@ -7,7 +7,7 @@
 [![arXiv](https://img.shields.io/badge/arXiv-2504.04665-b31b1b.svg)](https://arxiv.org/abs/2504.04665)
 [![CI](https://github.com/llueg/SiNDAE/actions/workflows/ci.yml/badge.svg)](https://github.com/llueg/SiNDAE/actions/workflows/ci.yml)
 
-**SiNDAE** is a Python package for hybrid modeling of dynamical systems. It learns
+**SiNDAE** (pronounced "sin-day") is a Python package for hybrid modeling of dynamical systems. It learns
 unknown nonlinear terms in ODE and DAE systems directly from data by embedding a
 neural network inside the governing equations and training it as a single nonlinear
 program (NLP). Because the mechanistic equations are kept as hard constraints, the
