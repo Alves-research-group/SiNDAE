@@ -16,12 +16,15 @@ conditions never seen during training.
 
 SiNDAE is the companion code to
 [*A simultaneous approach for training neural differential-algebraic systems of
-equations*](https://arxiv.org/abs/2504.04665) (Lueg et al., 2025).
+equations*](https://arxiv.org/abs/2504.04665) (Lueg et al., 2026).
 
 Authors:
 - [Laurens Lueg](https://github.com/llueg)
 - [Nicolas Smits](https://github.com/nicksmits1)
 - [Victor Alves](https://github.com/victoraalves)
+- [John Kitchin](https://github.com/jkitchin)
+- [Carl Laird](https://github.com/carldlaird)
+- [Lorenz Biegler](https://www.cheme.engineering.cmu.edu/directory/bios/biegler-lorenz.html)
 
 ## Features
 
@@ -43,7 +46,7 @@ Authors:
 
 ## Installation
 
-> **Coming soon to PyPI.** Until then, use the development install from source below.
+> SiNDAE can be installed via pip (recommended):
 
 ```bash
 pip install sindae            # core: full POUNCE/FERAL workflow (simultaneous, decomposition, inference)
@@ -187,11 +190,14 @@ See [`sindae-skills/README.md`](sindae-skills/README.md) for setup.
 ## Citation
 
 ```bibtex
-@article{lueg2025simultaneous,
-  title={A simultaneous approach for training neural differential-algebraic systems of equations},
-  author={Lueg, Laurens R and Alves, Victor and Schicksnus, Daniel and Kitchin, John R and Laird, Carl D and Biegler, Lorenz T},
-  journal={arXiv preprint arXiv:2504.04665},
-  year={2025}
+@misc{lueg2026sindae,
+      title={A Simultaneous Approach for Training Neural Differential-Algebraic Systems of Equations}, 
+      author={Laurens R. Lueg and Victor Alves and Daniel Schicksnus and John R. Kitchin and Carl D. Laird and Lorenz T. Biegler},
+      year={2026},
+      eprint={2504.04665},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2504.04665}, 
 }
 ```
 
