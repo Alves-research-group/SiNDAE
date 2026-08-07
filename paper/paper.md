@@ -54,7 +54,7 @@ SiNDAE implements the simultaneous and decomposition approaches from *A Simultan
 SiNDAE addresses a critical gap in scientific machine learning by providing a dedicated framework for hybrid Differential-Algebraic Equation (DAE) modeling. The package targets researchers and practitioners in process systems engineering, chemical engineering, and applied physics who hold mechanistic DAE models with uncharacterized or uncertain terms (e.g., complex reaction kinetics or mass transfer coefficients) and possess noisy, incomplete state measurements. While existing hybrid differential equation packages cater almost exclusively to Ordinary Differential Equations (ODEs), SiNDAE allows users to learn unknown functional components directly within index-1 and higher-index DAE systems. By enforcing governing algebraic equations as hard constraints during both training and inference, SiNDAE ensures that unobserved state variables remain physically consistent, enabling robust extrapolation to unmeasured operating regimes—a defining advantage of hybrid modeling [@vonstosch2014hybrid; @herreraruiz2025hybrid].
 
 ## (6) Usability & Open Access
-A major barrier to the adoption and open reproduction of hybrid modeling workflows is the lack of open-source software and the reliance on proprietary or complex solver installation stacks [@mahanty2023hybrid]. Traditional dynamic optimization workflows often depend on solvers like IPOPT [@wachter2006ipopt] paired with linear solvers (e.g., HSL's MA27) that require specialized licenses and compiled binaries, hindering code sharing across communal repositories. SiNDAE overcomes this hurdle by featuring a completely license-binary-free default installation powered by the POUNCE [@kitchin2026pounce] nonlinear solver and the FERAL [@kitchin2026feral] linear solver, both distributed directly via standard Python wheels. Practitioners can execute the entire pipeline—from parameter pre-training and simultaneous/decomposition training to model inference—out of the box, while retaining optional support for traditional cyipopt backends. Furthermore, SiNDAE adopts an estimator-oriented API architecture modeled after scikit-learn (HybridDAE and ProblemDefinition), reducing the learning curve for ML practitioners. Trained models can be exported to Equinox, ONNX, JSON, or OMLT NetworkDefinition objects [@ceccon2022omlt], allowing identified surrogates to be embedded seamlessly into downstream optimization and control workflows.
+A major barrier to the adoption and open reproduction of hybrid modeling workflows is the lack of open-source software and the reliance on proprietary or complex solver installation stacks [@mahanty2023hybrid]. Traditional dynamic optimization workflows often depend on solvers like IPOPT [@wachter2006ipopt] paired with linear solvers (e.g., HSL's MA27) that require specialized licenses and compiled binaries, hindering code sharing across communal repositories. SiNDAE overcomes this hurdle by featuring a completely license-binary-free default installation powered by the POUNCE [@kitchin2026pounce] nonlinear solver and the FERAL [@kitchin2026feral] linear solver, both distributed directly via standard Python wheels. Practitioners can execute the entire pipeline—from parameter pre-training and simultaneous/decomposition training to model inference—out of the box, while retaining optional support for traditional cyipopt backends. Furthermore, SiNDAE adopts an estimator-oriented API architecture modeled after scikit-learn (HybridDAE and ProblemDefinition), reducing the learning curve for ML practitioners. Trained models can be exported to Equinox, ONNX, JSON, or OMLT NetworkDefinition objects [@ceccon2022omlt], allowing identified surrogates to be embedded seamlessly into downstream optimization and control workflows. Additionally, to enable expedited hybrid modeling workflows using modern AI coding agents (primarily Claude Code), a directory called `sindae-skills` containing an instruction file and several skill files has been included. When configured for a coding agent working on a SiNDAE project, the instruction file guides the user interaction and modelling process through latex equation rendering and transparency rules, while skill files provide design decision and implementation best practices.
 
 ## (7) Ecosystem & Dependencies
 SiNDAE is built upon established scientific Python infrastructure. Symbolic model construction and Lagrange–Radau collocation on finite elements are managed via Pyomo and Pyomo.DAE [@bynum2021pyomo;@nicholson2018pyomodae], while Pyomo's PyNumero interface exposes the underlying NLP structures and KKT systems for implicit differentiation. Neural network architectures, exact higher-order automatic differentiation, and outer-loop optimization updates are powered by JAX [@jax2018github], Equinox [@kidger2021equinox], and Optax [@deepmind2020jax]. Fundamental data manipulation, scientific routines, and visualization are supported by NumPy, SciPy, and Matplotlib. Parallelization of the decomposition strategy is enabled through the optional use of MPI for Python [@dalcin2005mpi]. Exporting and printing functonality are handled by the jax2onnx [@jax2onnx] and tabulate [@tabulate] packages respectively. \autoref{fig:fig1} illustrates the resulting dependency architecture.
@@ -63,21 +63,35 @@ SiNDAE is built upon established scientific Python infrastructure. Symbolic mode
 
 # Vignette
 
-Point to examples gallery directory in the docs.
+To illustrate `SiNDAE`'s core capabilities and user workflow, consider a classic process engineering system: a two-tank liquid cascade operating as an index-1 Differential-Algebraic Equation (DAE). In this system, liquid levels $h_1(t)$ and $h_2(t)$ evolve under a constant feed rate $F_{in}$ and inter-tank flows $q_1(t)$ and $q_2(t)$:
 
-Describe the example.
+$$
+\begin{align}
+A_1 \frac{dh_1}{dt} = F_{in} - q_1, \qquad A_2 \frac{dh_2}{dt} = q_1 - q_2, \qquad q_2 = c_2\sqrt{h_2}
+\end{align}
+$$
 
-Code snippets of solve.
+In practical scenarios, physical relationships are often only partially known. Here, the outlet relation of the second tank ($q_2$) is explicitly governed by a known valve equation, while the inter-tank discharge law ($q_1$) is unknown and must be learned from noisy, sparse trajectory data of the liquid levels.
 
-Mention of the claude one shot implementation.
+The core philosophy of `SiNDAE` is to eliminate the mathematical and software engineering overhead traditional in dynamic optimization. Rather than requiring users to manually formulate orthogonal collocation matrices, derive sensitivity relations, or manage complex C++/Fortran solver dependencies, `SiNDAE` encapsulates the entire hybrid training and inference pipeline into a high-level, estimator-oriented architecture. 
+
+To solve this problem using `SiNDAE`, a user only needs to perform three concise steps:
+
+1. **Define the Physics:** Subclass `ProblemDefinition` to specify the mechanistic DAE in `Pyomo` format and designate which variables enter and exit the neural surrogate (\autoref{fig:fig2}a).
+2. **Configure and Fit:** Assemble the multi-stage training pipeline by pairing the problem with stage configuration objects. Calling `fit()` automatically handles data smoothing, supervised network pre-training, and the simultaneous non-linear program (NLP) optimization solve (\autoref{fig:fig2}b). Users can seamlessly swap between the simultaneous and decomposition algorithms or customize neural architectures via `SiNDAE`'s grey-box interface.
+3. **Predict and Export:** Call `predict()` on the fitted estimator to evaluate new initial conditions or operating regimes (\autoref{fig:fig2}b). Because `predict()` re-embeds the learned surrogate into the full mechanistic DAE solver, all predicted trajectories satisfy hard algebraic constraints by construction.
+
+As shown in \autoref{fig:fig2}c, although the neural network $f_{NN}(h_1, h_2; \theta)$ receives no prior structural information, its learned response collapses onto the true physics ($c_1\sqrt{h_1}$). Furthermore, predictions under unseen initial charges track reference trajectories exactly (\autoref{fig:fig2}d). Once identified, the trained hybrid model can be directly exported to ONNX, Equinox, or `OMLT` formats for use in downstream surrogate optimization and control tasks.
+
+![A complete ``SiNDAE`` workflow on a two-tank cascade DAE. (a) system definition via a ``ProblemDefinition`` subclass; (b) estimator assembly, multi-stage ``fit``, and constrained ``predict`` execution; (c) recovery of the un-modeled discharge law against the physical truth; (d) physically consistent prediction on holdout initial conditions.\label{fig:fig2}](./images/vignette_grid.png)
+
 
 # Availability
 
-``SiNDAE`` is available on [PyPI](INSERT PYPI LINK) and has its source code hosted on [GitHub](https://alves-research-group.github.io/SiNDAE/). The documentation contains
-thorough [descriptions of the API and functionality](INSERT DOCS PAGE LINK), as well as [theoretical grounding](INSERT DOCS PAGE LINK) for both of the solution methods available, [instructions](INSERT DOCS LINK) on how to configure a hybrid DAE system, and a [gallery of examples](INSERT DOCS EXAMPLES LINK). 
+``SiNDAE`` is available on [PyPI](https://pypi.org/project/sindae/) and has its source code hosted on [GitHub](https://alves-research-group.github.io/SiNDAE/). The documentation contains
+thorough [descriptions of the API and functionality](https://alves-research-group.github.io/SiNDAE/index-1/), as well as [theoretical](https://alves-research-group.github.io/SiNDAE/hybrid-dae-overview/) grounding for both the [simultaneous](https://alves-research-group.github.io/SiNDAE/simultaneous-solver/) and the [decomposition](https://alves-research-group.github.io/SiNDAE/decomposition-solver/) methods available, [instructions](https://alves-research-group.github.io/SiNDAE/hybrid-dae/) on how to configure a hybrid DAE system, as well as a [gallery of examples](https://alves-research-group.github.io/SiNDAE/index-2/). 
 
-The idea is to supply both proper documentation to
-the users in the open-source software community as well as to give the users the necessary amount of theory allowing them to employ process operability principles in their specific application.
+The authors aim to supply both proper documentation to the users in the open-source software community and provide sufficient grounding in theory to enable them to design, implement, and distribute hybrid DAE models for their use-case.
  
 
 # Acknowledgements

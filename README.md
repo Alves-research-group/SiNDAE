@@ -39,7 +39,7 @@ Authors:
 - **Binary-free install**: the pure-Rust [POUNCE](https://github.com/jkitchin/pounce)
   and [FERAL](https://github.com/jkitchin/feral) solvers replace HSL/MA27, so no
   licensed binaries are required.
-- **Trained model distribution**: export your trained neural network as a JAX serialized .eqx   file, an ONNX file, an OMLT `NetworkDefinition`, or a JSON.
+- **Trained model distribution**: export your trained neural network as a JAX serialized .eqx file, an ONNX file, an OMLT `NetworkDefinition`, or a JSON.
 
 ## Installation
 
