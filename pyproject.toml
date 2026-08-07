@@ -11,7 +11,7 @@ version = "0.1.0"
 description = "A package to learn unknown nonlinear terms in ODE/DAE systems via ML models and implicit differentiation"
 requires-python = ">=3.11"
 readme = "README.md"
-license = "MIT"
+license = "EPL-2.0"
 license-files = ["LICEN[CS]E*"]
 authors = [
     { name = "Laurens Lueg", email = "llueg@andrew.cmu.edu" }, { name = "Nicolas Smits", email = "nsmits@andrew.cmu.edu" }, { name= "Victor Alves", email = "vcunhaal@andrew.cmu.edu"}
