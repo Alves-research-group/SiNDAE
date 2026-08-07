@@ -203,5 +203,5 @@ See [`sindae-skills/README.md`](sindae-skills/README.md) for setup.
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for
+This project is licensed under the EPL License. See the [LICENSE](LICENSE) file for
 details.
