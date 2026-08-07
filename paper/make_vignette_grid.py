@@ -14,7 +14,6 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
-from matplotlib.gridspec import GridSpec
 from pygments import highlight
 from pygments.lexers import PythonLexer
 from pygments.formatters import ImageFormatter
@@ -56,32 +55,60 @@ render(problem_src, IMG / "vignette_code_problem.png")
 render(fit_panel, IMG / "vignette_code_fit.png")
 
 panels = {
-    "a": mpimg.imread(IMG / "vignette_code_problem.png"),
-    "b": mpimg.imread(IMG / "vignette_code_fit.png"),
-    "c": mpimg.imread(IMG / "vignette_law.png"),
-    "d": mpimg.imread(IMG / "vignette_predict.png"),
+    "a": mpimg.imread(IMG / "two_tank_diagram.png"),      # system schematic
+    "b": mpimg.imread(IMG / "vignette_code_problem.png"),
+    "c": mpimg.imread(IMG / "vignette_code_fit.png"),
+    "d": mpimg.imread(IMG / "vignette_law.png"),
+    "e": mpimg.imread(IMG / "vignette_predict.png"),
 }
+asp = {k: v.shape[1] / v.shape[0] for k, v in panels.items()}
+for k, v in panels.items():
+    print(k, v.shape, f"aspect {asp[k]:.2f}")
 
-# Column/row ratios chosen so each cell matches its panel's natural aspect,
-# leaving no letterboxing gaps.
-fig = plt.figure(figsize=(14.0, 12.2))
-gs = GridSpec(3, 2, figure=fig,
-              width_ratios=[1.35, 1.0],
-              height_ratios=[0.68, 0.79, 0.58],
-              hspace=0.05, wspace=0.03)
+# Every cell is sized to its panel's measured aspect, so nothing letterboxes.
+# Layout, in units of total figure width (= 1):
+#   top block   left column  = (a) schematic over (c) fit/export/predict code
+#               right column = (b) problem definition, spanning both rows
+#   bottom row  = (d) learned law beside (e) prediction
+w_left = 1.0 / (1.0 + asp["b"] * (1.0 / asp["a"] + 1.0 / asp["c"]))
+w_right = 1.0 - w_left
+h_top = w_left * (1.0 / asp["a"] + 1.0 / asp["c"])
+
+w_law = asp["d"] / (asp["d"] + asp["e"])
+h_bot = 1.0 / (asp["d"] + asp["e"])
+
+FIG_W = 14.0
+GAP = 0.20  # gap between the top block and the bottom row, inches
+FIG_H = FIG_W * (h_top + h_bot) + GAP
+
+# Two gridspecs placed by hand rather than fig.subfigures: subfigures split the
+# whole canvas by height_ratios, which folds GAP back into the blocks and
+# reopens the dead band under the left column.
+fig = plt.figure(figsize=(FIG_W, FIG_H))
+gs_top = fig.add_gridspec(2, 2,
+                          width_ratios=[w_left, w_right],
+                          height_ratios=[1.0 / asp["a"], 1.0 / asp["c"]],
+                          left=0.0, right=1.0,
+                          bottom=(FIG_W * h_bot + GAP) / FIG_H, top=1.0,
+                          wspace=0.03, hspace=0.06)
+gs_bot = fig.add_gridspec(1, 2, width_ratios=[w_law, 1.0 - w_law],
+                          left=0.0, right=1.0,
+                          bottom=0.0, top=FIG_W * h_bot / FIG_H,
+                          wspace=0.10)
 
 axes = {
-    "a": fig.add_subplot(gs[0:2, 0]),
-    "b": fig.add_subplot(gs[0, 1]),
-    "c": fig.add_subplot(gs[1, 1]),
-    "d": fig.add_subplot(gs[2, :]),
+    "a": fig.add_subplot(gs_top[0, 0]),
+    "b": fig.add_subplot(gs_top[:, 1]),
+    "c": fig.add_subplot(gs_top[1, 0]),
+    "d": fig.add_subplot(gs_bot[0, 0]),
+    "e": fig.add_subplot(gs_bot[0, 1]),
 }
 
-for key in "abcd":
+for key in "abcde":
     ax = axes[key]
     ax.imshow(panels[key])
     ax.set_axis_off()
-    ax.set_anchor("N" if key in "ab" else "C")
+    ax.set_anchor("N" if key in "abc" else "C")
     ax.text(-0.01, 1.0, f"({key})", transform=ax.transAxes,
             ha="right", va="top", fontsize=17, fontweight="bold")
 

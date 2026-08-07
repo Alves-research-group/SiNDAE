@@ -63,7 +63,7 @@ SiNDAE is built upon established scientific Python infrastructure. Symbolic mode
 
 # Vignette
 
-To illustrate `SiNDAE`'s core capabilities and user workflow, consider a classic process engineering system: a two-tank liquid cascade operating as an index-1 Differential-Algebraic Equation (DAE). In this system, liquid levels $h_1(t)$ and $h_2(t)$ evolve under a constant feed rate $F_{in}$ and inter-tank flows $q_1(t)$ and $q_2(t)$:
+To illustrate `SiNDAE`'s core capabilities and user workflow, consider a classic process engineering system: a two-tank liquid cascade operating as an index-1 Differential-Algebraic Equation (DAE), shown in \autoref{fig:fig2}a. In this system, liquid levels $h_1(t)$ and $h_2(t)$ evolve under a constant feed rate $F_{in}$ and inter-tank flows $q_1(t)$ and $q_2(t)$:
 
 $$
 \begin{align}
@@ -77,13 +77,13 @@ The core philosophy of `SiNDAE` is to eliminate the mathematical and software en
 
 To solve this problem using `SiNDAE`, a user only needs to perform three concise steps:
 
-1. **Define the Physics:** Subclass `ProblemDefinition` to specify the mechanistic DAE in `Pyomo` format and designate which variables enter and exit the neural surrogate (\autoref{fig:fig2}a).
-2. **Configure and Fit:** Assemble the multi-stage training pipeline by pairing the problem with stage configuration objects. Calling `fit()` automatically handles data smoothing, supervised network pre-training, and the simultaneous non-linear program (NLP) optimization solve (\autoref{fig:fig2}b). Users can seamlessly swap between the simultaneous and decomposition algorithms or customize neural architectures via `SiNDAE`'s grey-box interface.
-3. **Predict and Export:** Call `predict()` on the fitted estimator to evaluate new initial conditions or operating regimes (\autoref{fig:fig2}b). Because `predict()` re-embeds the learned surrogate into the full mechanistic DAE solver, all predicted trajectories satisfy hard algebraic constraints by construction.
+1. **Define the Physics:** Subclass `ProblemDefinition` to specify the mechanistic DAE in `Pyomo` format and designate which variables enter and exit the neural surrogate (\autoref{fig:fig2}b).
+2. **Configure and Fit:** Assemble the multi-stage training pipeline by pairing the problem with stage configuration objects. Calling `fit()` automatically handles data smoothing, supervised network pre-training, and the simultaneous non-linear program (NLP) optimization solve (\autoref{fig:fig2}c). Users can seamlessly swap between the simultaneous and decomposition algorithms or customize neural architectures via `SiNDAE`'s grey-box interface.
+3. **Predict and Export:** Call `predict()` on the fitted estimator to evaluate new initial conditions or operating regimes (\autoref{fig:fig2}c). Because `predict()` re-embeds the learned surrogate into the full mechanistic DAE solver, all predicted trajectories satisfy hard algebraic constraints by construction.
 
-As shown in \autoref{fig:fig2}c, although the neural network $f_{NN}(h_1, h_2; \theta)$ receives no prior structural information, its learned response collapses onto the true physics ($c_1\sqrt{h_1}$). Furthermore, predictions under unseen initial charges track reference trajectories exactly (\autoref{fig:fig2}d). Once identified, the trained hybrid model can be directly exported to ONNX, Equinox, or `OMLT` formats for use in downstream surrogate optimization and control tasks.
+As shown in \autoref{fig:fig2}d, although the neural network $f_{NN}(h_1, h_2; \theta)$ receives no prior structural information, its learned response collapses onto the true physics ($c_1\sqrt{h_1}$). Furthermore, predictions under unseen initial charges track reference trajectories exactly (\autoref{fig:fig2}e). Once identified, the trained hybrid model can be directly exported to ONNX, Equinox, or `OMLT` formats for use in downstream surrogate optimization and control tasks.
 
-![A complete ``SiNDAE`` workflow on a two-tank cascade DAE. (a) system definition via a ``ProblemDefinition`` subclass; (b) estimator assembly, multi-stage ``fit``, and constrained ``predict`` execution; (c) recovery of the un-modeled discharge law against the physical truth; (d) physically consistent prediction on holdout initial conditions.\label{fig:fig2}](./images/vignette_grid.png)
+![A complete ``SiNDAE`` workflow on a two-tank cascade DAE. (a) the physical system, with the inter-tank discharge $q_1$ treated as unknown; (b) system definition via a ``ProblemDefinition`` subclass; (c) estimator assembly, multi-stage ``fit``, ``export``, and constrained ``predict`` execution; (d) recovery of the un-modeled discharge law against the physical truth; (e) physically consistent prediction on holdout initial conditions.\label{fig:fig2}](./images/vignette_grid.png)
 
 
 # Availability
@@ -93,6 +93,9 @@ thorough [descriptions of the API and functionality](https://alves-research-grou
 
 The authors aim to supply both proper documentation to the users in the open-source software community and provide sufficient grounding in theory to enable them to design, implement, and distribute hybrid DAE models for their use-case.
  
+# AI Usage Disclosure
+
+AI Coding assistants, primarily Claude Code, were used during the development of `SiNDAE`. Their role was confined to restructuring the original research code of [@lueg2025simultaneous] into an installable package, migrating the solver backends, writing tests, configuring documentation, and debugging. The numerical methods, the problem formulations, and the validation criteria are the authors' own. 
 
 # Acknowledgements
 
