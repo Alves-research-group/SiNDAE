@@ -2,7 +2,7 @@
 
 # SiNDAE — A Simultaneous Approach for Training Neural Differential-Algebraic Equations
 
-![PyPI License](https://img.shields.io/pypi/l/sindae)
+[![PyPI License](https://img.shields.io/pypi/l/sindae)](https://github.com/Alves-research-group/SiNDAE/blob/main/LICENSE)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)
 [![arXiv](https://img.shields.io/badge/arXiv-2504.04665-b31b1b.svg)](https://arxiv.org/abs/2504.04665)
 [![CI](https://github.com/llueg/SiNDAE/actions/workflows/ci.yml/badge.svg)](https://github.com/llueg/SiNDAE/actions/workflows/ci.yml)
