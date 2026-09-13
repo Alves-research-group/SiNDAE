@@ -10,7 +10,7 @@ project:
     - name: Laurens Lueg
     - name: Nicolas Smits
     - name: Victor Alves
-  github: https://github.com/llueg/SiNDAE/
+  github: https://github.com/Alves-research-group/SiNDAE/
   jupyter:
     binder:
       repo: Alves-research-group/SiNDAE
