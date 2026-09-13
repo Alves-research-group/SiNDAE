@@ -5,9 +5,9 @@
 [![PyPI License](https://img.shields.io/pypi/l/sindae)](https://github.com/Alves-research-group/SiNDAE/blob/main/LICENSE)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)
 [![arXiv](https://img.shields.io/badge/arXiv-2504.04665-b31b1b.svg)](https://arxiv.org/abs/2504.04665)
-[![CI](https://github.com/llueg/SiNDAE/actions/workflows/ci.yml/badge.svg)](https://github.com/llueg/SiNDAE/actions/workflows/ci.yml)
+[![CI](https://github.com/Alves-research-group/SiNDAE/actions/workflows/ci.yml/badge.svg)](https://github.com/Alves-research-group/SiNDAE/actions/workflows/ci.yml)
 
-**SiNDAE** is a Python package for hybrid modeling of dynamical systems. It learns
+**SiNDAE** (pronounced "sin-day") is a Python package for hybrid modeling of dynamical systems. It learns
 unknown nonlinear terms in ODE and DAE systems directly from data by embedding a
 neural network inside the governing equations and training it as a single nonlinear
 program (NLP). Because the mechanistic equations are kept as hard constraints, the
@@ -42,7 +42,7 @@ Authors:
 - **Binary-free install**: the pure-Rust [POUNCE](https://github.com/jkitchin/pounce)
   and [FERAL](https://github.com/jkitchin/feral) solvers replace HSL/MA27, so no
   licensed binaries are required.
-- **Trained model distribution**: export your trained neural network as a JAX serialized .eqx   file, an ONNX file, an OMLT `NetworkDefinition`, or a JSON.
+- **Trained model distribution**: export your trained neural network as a JAX serialized .eqx file, an ONNX file, an OMLT `NetworkDefinition`, or a JSON.
 
 ## Installation
 
@@ -64,7 +64,7 @@ troubleshooting.
 For a development install from source:
 
 ```bash
-git clone https://github.com/llueg/SiNDAE.git
+git clone https://github.com/Alves-research-group/SiNDAE.git
 cd SiNDAE
 pip install -e ".[full,test]"
 ```

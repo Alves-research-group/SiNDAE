@@ -1,10 +1,21 @@
-@article{lueg2025simultaneous,
-  title   = {A simultaneous approach for training neural differential-algebraic systems of equations},
-  author  = {Lueg, Laurens R and Alves, Victor and Schicksnus, Daniel and Kitchin, John R and Laird, Carl D and Biegler, Lorenz T},
-  journal = {arXiv preprint arXiv:2504.04665},
-  year    = {2025},
-  url     = {https://arxiv.org/abs/2504.04665},
+@article{Lueg2026Simultaneous,
+author={Lueg, Laurens R.
+and Alves, Victor
+and Schicksnus, Daniel
+and Kitchin, John R.
+and Laird, Carl D.
+and Biegler, Lorenz T.},
+title={A simultaneous approach for training neural differential-algebraic systems of equations},
+journal={Computational Optimization and Applications},
+year={2026},
+month={Aug},
+day={17},
+abstract={Neural differential-algebraic systems of equations (DAEs) are a modeling paradigm where some unknown relationships within a DAE are modeled with a neural network and learned from data. Training neural DAEs is more challenging than training neural ordinary-differential equations (ODEs), particularly for higher-index systems. Existing approaches utilize differentiable pipelines, usually comprising integration, projection, operator splitting, or penalty terms for algebraic constraints. The parameters are then updated in a sequential manner using gradient descent. In this work, we employ the simultaneous approach for DAE-constrained parameter estimation instead. This defines a fully discretized nonlinear programing problem (NLP), whose solution simultaneously obtains the neural network parameters and the trajectories of the corresponding DAE, while enforcing constraint satisfaction at the discretization points. We show that with careful initialization and handling of the neural network terms, this approach can be efficient for smaller-scale problems, including higher-index DAEs. As the number of parameters or the amount of data increase, decomposition strategies are necessary to make this method scalable. We present a bi-level approach, where a tractable, discretized NLP is solved at every iteration of an outer gradient descent method, and the sensitivity of its solution with respect to the neural network parameters is evaluated in an efficient manner. We demonstrate the scalability of this decomposition with respect to the number of parameters and the size of the training data set.},
+issn={1573-2894},
+doi={10.1007/s10589-026-00823-y},
+url={https://doi.org/10.1007/s10589-026-00823-y}
 }
+
 
 @article{chen2018neural,
   title   = {Neural ordinary differential equations},
@@ -46,6 +57,13 @@
   title   = {{JAX}: composable transformations of {Python}+{NumPy} programs},
   url     = {http://github.com/google/jax},
   year    = {2018},
+}
+
+@software{deepmind2020jax,
+  title = {The {D}eep{M}ind {JAX} {E}cosystem},
+  author = {DeepMind and Babuschkin, Igor and Baumli, Kate and Bell, Alison and Bhupatiraju, Surya and Bruce, Jake and Buchlovsky, Peter and Budden, David and Cai, Trevor and Clark, Aidan and Danihelka, Ivo and Dedieu, Antoine and Fantacci, Claudio and Godwin, Jonathan and Jones, Chris and Hemsley, Ross and Hennigan, Tom and Hessel, Matteo and Hou, Shaobo and Kapturowski, Steven and Keck, Thomas and Kemaev, Iurii and King, Michael and Kunesch, Markus and Martens, Lena and Merzic, Hamza and Mikulik, Vladimir and Norman, Tamara and Papamakarios, George and Quan, John and Ring, Roman and Ruiz, Francisco and Sanchez, Alvaro and Sartran, Laurent and Schneider, Rosalia and Sezener, Eren and Spencer, Stephen and Srinivasan, Srivatsan and Stanojevi\'{c}, Milo\v{s} and Stokowiec, Wojciech and Wang, Luyu and Zhou, Guangyao and Viola, Fabio},
+  url = {http://github.com/google-deepmind},
+  year = {2020},
 }
 
 @article{kidger2021equinox,
@@ -223,3 +241,247 @@ keywords = {scalable machine learning, distributed algorithms, apache spark}
   howpublished = {\url{https://github.com/jkitchin/feral}},
   url          = {https://github.com/jkitchin/feral}
 }
+
+@article{koch2024operator,
+  title   = {Learning Neural Differential Algebraic Equations via Operator Splitting},
+  author  = {Koch, James and Shapiro, Madelyn and Sharma, Himanshu and
+             Vrabie, Draguna and Drgo{\v{n}}a, J{\'a}n},
+  journal = {2025 IEEE 64th Conference on Decision and Control (CDC)},
+  pages   = {2077--2084},
+  year    = {2025},
+  doi     = {10.1109/CDC57313.2025.11312239},
+  note    = {Preprint: arXiv:2403.12938}
+}
+
+@inproceedings{white2023stabilized,
+  title     = {Stabilized Neural Differential Equations for Learning Dynamics
+               with Explicit Constraints},
+  author    = {White, Alistair and Kilbertus, Niki and Gelbrecht, Maximilian and
+               Boers, Niklas},
+  booktitle = {Advances in Neural Information Processing Systems},
+  volume    = {36},
+  pages     = {12929--12950},
+  year      = {2023},
+  doi       = {10.48550/arXiv.2306.09739}
+}
+
+@article{moya2022daepinn,
+  title   = {{DAE-PINN}: a physics-informed neural network model for simulating
+             differential algebraic equations with application to power networks},
+  author  = {Moya, Christian and Lin, Guang},
+  journal = {Neural Computing and Applications},
+  volume  = {35},
+  number  = {5},
+  pages   = {3789--3804},
+  year    = {2022},
+  doi     = {10.1007/s00521-022-07886-y}
+}
+
+@article{kim2021stiff,
+  title   = {Stiff neural ordinary differential equations},
+  author  = {Kim, Suyong and Ji, Weiqi and Deng, Sili and Ma, Yingbo and
+             Rackauckas, Christopher},
+  journal = {Chaos: An Interdisciplinary Journal of Nonlinear Science},
+  volume  = {31},
+  number  = {9},
+  pages   = {093122},
+  year    = {2021},
+  doi     = {10.1063/5.0060697}
+}
+
+@article{rackauckas2019diffeqflux,
+  title   = {{DiffEqFlux.jl} -- A {Julia} Library for Neural Differential Equations},
+  author  = {Rackauckas, Christopher and Innes, Mike and Ma, Yingbo and
+             Bettencourt, Jesse and White, Lyndon and Dixit, Vaibhav},
+  journal = {arXiv preprint arXiv:1902.02376},
+  year    = {2019},
+  doi     = {10.48550/arXiv.1902.02376}
+}
+
+@phdthesis{kidger2022neuralde,
+  title  = {On Neural Differential Equations},
+  author = {Kidger, Patrick},
+  school = {University of Oxford},
+  year   = {2022},
+  doi    = {10.48550/arXiv.2202.02435},
+  note   = {Introduces the {Diffrax} library}
+}
+
+@article{ceccon2022omlt,
+  title   = {{OMLT}: Optimization \& Machine Learning Toolkit},
+  author  = {Ceccon, Francesco and Jalving, Jordan and Haddad, Joshua and
+             Thebelt, Alexander and Tsay, Calvin and Laird, Carl D. and
+             Misener, Ruth},
+  journal = {Journal of Machine Learning Research},
+  volume  = {23},
+  number  = {349},
+  pages   = {1--8},
+  year    = {2022},
+  doi     = {10.48550/arXiv.2202.02414}
+}
+
+@article{herreraruiz2025hybrid,
+  title   = {Hybrid Modeling for Bioprocesses: Architectures, Applications,
+             and Perspectives},
+  author  = {Herrera-Ruiz, Juan Federico and Fontalvo, Javier and
+             Prado-Rubio, Oscar Andr{\'e}s},
+  journal = {Engineering Reports},
+  volume  = {7},
+  number  = {12},
+  year    = {2025},
+  doi     = {10.1002/eng2.70502}
+}
+
+@article{mahanty2023hybrid,
+  title   = {Hybrid modeling in bioprocess dynamics: Structural variabilities,
+             implementation strategies, and practical challenges},
+  author  = {Mahanty, Biswanath},
+  journal = {Biotechnology and Bioengineering},
+  volume  = {120},
+  number  = {8},
+  pages   = {2072--2091},
+  year    = {2023},
+  doi     = {10.1002/bit.28503}
+}
+
+@article{vonstosch2014hybrid,
+  title   = {Hybrid semi-parametric modeling in process systems engineering:
+             Past, present and future},
+  author  = {von Stosch, Moritz and Oliveira, Rui and Peres, Joana and
+             Feyo de Azevedo, Sebasti{\~a}o},
+  journal = {Computers \& Chemical Engineering},
+  volume  = {60},
+  pages   = {86--101},
+  year    = {2014},
+  doi     = {10.1016/j.compchemeng.2013.08.008}
+}
+
+@article{sharma2022sgml,
+  title   = {A hybrid science-guided machine learning approach for modeling
+             chemical processes: A review},
+  author  = {Sharma, Niket and Liu, Y. A.},
+  journal = {AIChE Journal},
+  volume  = {68},
+  number  = {5},
+  pages   = {e17609},
+  year    = {2022},
+  doi     = {10.1002/aic.17609}
+}
+
+@article{psichogios1992hybrid,
+  title   = {A hybrid neural network-first principles approach to process modeling},
+  author  = {Psichogios, Dimitris C. and Ungar, Lyle H.},
+  journal = {AIChE Journal},
+  volume  = {38},
+  number  = {10},
+  pages   = {1499--1511},
+  year    = {1992},
+  doi     = {10.1002/aic.690381003}
+}
+
+@article{thompson1994modeling,
+author = {Thompson, Michael L. and Kramer, Mark A.},
+title = {Modeling chemical processes using prior knowledge and neural networks},
+journal = {AIChE Journal},
+volume = {40},
+number = {8},
+pages = {1328-1340},
+doi = {https://doi.org/10.1002/aic.690400806},
+url = {https://aiche.onlinelibrary.wiley.com/doi/abs/10.1002/aic.690400806},
+eprint = {https://aiche.onlinelibrary.wiley.com/doi/pdf/10.1002/aic.690400806},
+abstract = {Abstract We present a method for synthesizing chemical process models that combines prior knowledge and artificial neural networks. The inclusion of prior knowledge is investigated as a means of improving the neural network predictions when trained on sparse and noisy process data. Prior knowledge enters the hybrid model as a simple process model and first principle equations. The simple model controls the extrapolation of the hybrid in the regions of input space that lack training data. The first principle equations, such as mass and component balances, enforce equality constraints. The neural network compensates for inaccuracy in the prior model. In addition, inequality constraints are imposed during parameter estimation. For illustration, the approach is applied in predicting cell biomass and secondary metabolite in a fed-batch penicillin fermentation. Our results show that prior knowledge enhances the generalization capabilities of a pure neural network model. The approach is shown to require less data for parameter estimation, produce more accurate and consistent predictions, and provide more reliable extrapolation.},
+year = {1994}
+}
+
+@article{rodriguez2023pynumero,
+author = {Rodriguez, Jose S. and Parker, Robert B. and Laird, Carl D. and Nicholson, Bethany L. and Siirola, John D. and Bynum, Michael L.},
+title = {Scalable Parallel Nonlinear Optimization with PyNumero and Parapint},
+year = {2023},
+issue_date = {March-April 2023},
+publisher = {INFORMS},
+address = {Linthicum, MD, USA},
+volume = {35},
+number = {2},
+issn = {1526-5528},
+url = {https://doi.org/10.1287/ijoc.2023.1272},
+doi = {10.1287/ijoc.2023.1272},
+abstract = {We describe PyNumero, an open-source, object-oriented programming framework in Python that supports rapid development of performant parallel algorithms for structured nonlinear programming problems (NLP’s) using the Message Passing Interface (MPI). PyNumero provides three fundamental building blocks for developing NLP algorithms: a fast interface for calculating first and second derivatives with the AMPL Solver Library (ASL), a number of interfaces to efficient linear solvers, and block-structured vectors and matrices based on NumPy, SciPy, and MPI that support distributed parallel storage and computation. PyNumero’s design enables efficient, parallel algorithm development using high-level Python syntax while keeping expensive numerical calculations in fast, compiled implementations based on languages like C and Fortran. To demonstrate the utility of PyNumero, we also present Parapint, a Python package built on PyNumero for parallel solution of dynamic optimization problems. Parapint includes a parallel interior-point solver based on Schur-Complement decomposition. We illustrate the effectiveness of PyNumero for developing parallel algorithms with both code examples and scalability analyses for parallel matrix-vector dot products, parallel solution of structured systems of linear equations using Schur-Complement decomposition, and the parallel solution of a two-dimensional PDE optimal control problem. Our numerical results show nearly perfect scaling to more than 1,000 cores for large matrix-vector dot products and structured linear systems. Moreover, we obtain more than 354 times speedup for the optimal control example.History: Accepted by Alice Smith, EIC/Ted Ralphs, Area Editor/Software Tools.Funding: This work was funded in part by the Institute for the Design of Advanced Energy Systems (IDAES) with funding from the Office of Fossil Energy, Cross-Cutting Research, U.S. Department of Energy. This work was also funded by Sandia National Laboratories Laboratory Directed Research and Development (LDRD) program.Supplemental Material: The software that supports the findings of this study is available within the paper and its Supplemental Information () as well as from the IJOC GitHub software repository () at ().},
+journal = {INFORMS J. on Computing},
+month = mar,
+pages = {509–517},
+numpages = {9},
+keywords = {Python, parallel computing, decomposition algorithms, open-source optimization software, nonlinear programming}
+}
+
+@article{dalcin2005mpi,
+  author    = {L. Dalcin, R. Paz, and M. Storti},
+  title     = {MPI for Python},
+  journal   = {Journal of Parallel and Distributed Computing},
+  volume    = {65},
+  number    = {9},
+  pages     = {1108-1115},
+  year      = {2005},
+  doi       = {10.1016/j.jpdc.2005.03.010},
+  url       = {https://doi.org/10.1016/j.jpdc.2005.03.010}
+}
+
+@misc{jax2onnx,
+  author = {Enpasos},
+  title = {jax2onnx: Export JAX, Flax NNX, Flax Linen, and Equinox to ONNX},
+  year = {2025},
+  publisher = {GitHub},
+  journal = {GitHub repository},
+  url = {https://github.com/enpasos/jax2onnx}
+}
+
+@misc{tabulate,
+  author       = {Sergey Astanin},
+  title        = {tabulate: Pretty-print tabular data in Python},
+  year         = {2026},
+  publisher    = {GitHub},
+  journal      = {GitHub repository},
+  howpublished = {\url{https://github.com/astanin/python-tabulate}},
+  note         = {Version 0.10.0}
+}
+
+@article{MacchiettoMBDoE2008,
+author = {Franceschini, Gaia and Macchietto, Sandro},
+year = {2008},
+month = {10},
+pages = {4846-4872},
+title = {Macchietto, S.: Model-based design of experiments for parameter precision: State of the art. Chemical Engineering Science 63(19), 4846-4872},
+volume = {63},
+journal = {Chemical Engineering Science},
+doi = {10.1016/j.ces.2007.11.034}
+}
+
+@techreport{drgona2023dadaist,
+  title        = {Domain Aware Deep-learning Algorithms Integrated with Scientific-computing Technologies (DADAIST)},
+  author       = {Drgona, Jan and Tuor, Aaron and Koch, James and Shapiro, Madelyn and King, Ethan and Vrabie, Draguna},
+  institution  = {Pacific Northwest National Laboratory},
+  address      = {Richland, WA},
+  number       = {PNNL-34895},
+  year         = {2023},
+  month        = sep,
+  note         = {Prepared for the U.S. Department of Energy under Contract DE-AC05-76RL01830}
+}
+
+@article{Biegler2007,
+title = {An overview of simultaneous strategies for dynamic optimization},
+journal = {Chemical Engineering and Processing: Process Intensification},
+volume = {46},
+number = {11},
+pages = {1043-1053},
+year = {2007},
+note = {Special Issue on Process Optimization and Control in Chemical Engineering and Processing},
+issn = {0255-2701},
+doi = {https://doi.org/10.1016/j.cep.2006.06.021},
+url = {https://www.sciencedirect.com/science/article/pii/S0255270107001122},
+author = {Lorenz T. Biegler},
+keywords = {Dynamic optimization, Computer aided process, Real-world application},
+abstract = {Simultaneous approaches for dynamic optimization problems are surveyed and a number of emerging topics are explored. Also known as direct transcription, this approach has a number of advantages over competing dynamic optimization methods. Moreover, a number of industrial applications have recently been reported on challenging real-world applications. This study provides background information, summarizes the underlying concepts and properties of this approach, discusses recent advances in the treatment of discrete decisions and, finally, illustrates the approach with two process case studies.}
+}
+
+@book{bynum2021pyomo, title={Pyomo--optimization modeling in python}, author={Bynum, Michael L. and Hackebeil, Gabriel A. and Hart, William E. and Laird, Carl D. and Nicholson, Bethany L. and Siirola, John D. and Watson, Jean-Paul and Woodruff, David L.}, edition={Third}, volume={67}, year={2021}, publisher={Springer Science \& Business Media} } 
+
+@Article{nicholson2018pyomodae, author={Nicholson, Bethany and Siirola, John D. and Watson, Jean-Paul     and Zavala, Victor M. and Biegler, Lorenz T.}, title={pyomo.dae: a modeling and automatic discretization framework for optimization with differential and algebraic equations}, journal={Mathematical Programming Computation}, volume={10}, number={2}, year={2018}, pages={187--223}, publisher={Springer} }

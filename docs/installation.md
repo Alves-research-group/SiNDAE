@@ -102,7 +102,7 @@ To contribute or to run the test suite, install an editable copy from a clone. T
 `test` extra adds `pytest`:
 
 ```bash
-git clone https://github.com/llueg/SiNDAE.git
+git clone https://github.com/Alves-research-group/SiNDAE.git
 cd SiNDAE
 pip install -e ".[full,test]"
 ```
