@@ -20,6 +20,7 @@ CONTEXT.md
 dev/
 .ruff_cache/
 sindae-skills/microalgae-model-example/
+tests/end-to-end/test_solver_scalability.py
 
 # MyST build outputs
 _build

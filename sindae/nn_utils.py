@@ -110,6 +110,12 @@ def train_eqx_mlp(
     reg_type: str = "l2",
     key: jax.Array = jax.random.PRNGKey(0),
 ):
+    """Train `mlp` with Adam on (input_data, output_data) mini-batches.
+
+    Returns ``(mlp, loss_history, val_loss_history)`` where ``loss_history``
+    holds the per-batch training loss and ``val_loss_history`` holds the
+    full-dataset loss evaluated once per epoch.
+    """
     def is_linear(x):
         return isinstance(x, eqx.nn.Linear)
     def get_params(m):
@@ -153,10 +159,14 @@ def train_eqx_mlp(
     @eqx.filter_jit
     def make_step(model, state, x, y, reg_coef):
         loss, grad = eqx.filter_value_and_grad(loss_fn)(model, x, y, reg_coef)
-        val_loss = loss_fn(model, input_data, output_data, reg_coef)
         updates, new_state = optimizer.update(grad, state, model)
         new_model = eqx.apply_updates(model, updates)
-        return new_model, new_state, loss, val_loss
+        return new_model, new_state, loss
+
+    @eqx.filter_jit
+    def eval_loss(model, x, y, reg_coef):
+        # Full-dataset loss, evaluated once per epoch.
+        return loss_fn(model, x, y, reg_coef)
 
     loss_history = []
     val_loss_history = []
@@ -170,11 +180,11 @@ def train_eqx_mlp(
             output_data,
             batch_size=batch_size,
         ):
-            mlp, opt_state, loss, val_loss = make_step(
+            mlp, opt_state, loss = make_step(
                 mlp, opt_state, batch_x, batch_y, reg_coef
             )
             loss_history.append(loss)
-            val_loss_history.append(val_loss)
+        val_loss_history.append(eval_loss(mlp, input_data, output_data, reg_coef))
 
     return mlp, loss_history, val_loss_history
 

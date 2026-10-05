@@ -2,7 +2,7 @@
 
 # SiNDAE — A Simultaneous Approach for Training Neural Differential-Algebraic Equations
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![PyPI License](https://img.shields.io/pypi/l/sindae)](https://github.com/Alves-research-group/SiNDAE/blob/main/LICENSE)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)
 [![arXiv](https://img.shields.io/badge/arXiv-2504.04665-b31b1b.svg)](https://arxiv.org/abs/2504.04665)
 [![CI](https://github.com/Alves-research-group/SiNDAE/actions/workflows/ci.yml/badge.svg)](https://github.com/Alves-research-group/SiNDAE/actions/workflows/ci.yml)
@@ -19,12 +19,15 @@ conditions never seen during training.
 
 SiNDAE is the companion code to
 [*A simultaneous approach for training neural differential-algebraic systems of
-equations*](https://arxiv.org/abs/2504.04665) (Lueg et al., 2025).
+equations*](https://arxiv.org/abs/2504.04665) (Lueg et al., 2026).
 
 Authors:
 - [Laurens Lueg](https://github.com/llueg)
 - [Nicolas Smits](https://github.com/nicksmits1)
 - [Victor Alves](https://github.com/victoraalves)
+- [John Kitchin](https://github.com/jkitchin)
+- [Carl Laird](https://github.com/carldlaird)
+- [Lorenz Biegler](https://www.cheme.engineering.cmu.edu/directory/bios/biegler-lorenz.html)
 
 ## Features
 
@@ -46,7 +49,7 @@ Authors:
 
 ## Installation
 
-> **Coming soon to PyPI.** Until then, use the development install from source below.
+> SiNDAE can be installed via pip (recommended):
 
 ```bash
 pip install sindae            # core: full POUNCE/FERAL workflow (simultaneous, decomposition, inference)
@@ -211,5 +214,5 @@ url={https://doi.org/10.1007/s10589-026-00823-y}
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for
+This project is licensed under the EPL License. See the [LICENSE](LICENSE) file for
 details.
