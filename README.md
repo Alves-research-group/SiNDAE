@@ -5,9 +5,12 @@
 [![PyPI License](https://img.shields.io/pypi/l/sindae)](https://github.com/Alves-research-group/SiNDAE/blob/main/LICENSE)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)
 [![arXiv](https://img.shields.io/badge/arXiv-2504.04665-b31b1b.svg)](https://arxiv.org/abs/2504.04665)
-[![CI](https://github.com/llueg/SiNDAE/actions/workflows/ci.yml/badge.svg)](https://github.com/llueg/SiNDAE/actions/workflows/ci.yml)
+[![CI](https://github.com/Alves-research-group/SiNDAE/actions/workflows/ci.yml/badge.svg)](https://github.com/Alves-research-group/SiNDAE/actions/workflows/ci.yml)
+[![PyPI Downloads](https://img.shields.io/pypi/dm/sindae)](https://pypi.org/project/sindae/)
+[![GitHub Stars](https://img.shields.io/github/stars/Alves-research-group/SiNDAE?style=social)](https://github.com/Alves-research-group/SiNDAE)
+[![GitHub Forks](https://img.shields.io/github/forks/Alves-research-group/SiNDAE?style=social)](https://github.com/Alves-research-group/SiNDAE)
 
-**SiNDAE** is a Python package for hybrid modeling of dynamical systems. It learns
+**SiNDAE** (pronounced "sin-day") is a Python package for hybrid modeling of dynamical systems. It learns
 unknown nonlinear terms in ODE and DAE systems directly from data by embedding a
 neural network inside the governing equations and training it as a single nonlinear
 program (NLP). Because the mechanistic equations are kept as hard constraints, the
@@ -42,7 +45,7 @@ Authors:
 - **Binary-free install**: the pure-Rust [POUNCE](https://github.com/jkitchin/pounce)
   and [FERAL](https://github.com/jkitchin/feral) solvers replace HSL/MA27, so no
   licensed binaries are required.
-- **Trained model distribution**: export your trained neural network as a JAX serialized .eqx   file, an ONNX file, an OMLT `NetworkDefinition`, or a JSON.
+- **Trained model distribution**: export your trained neural network as a JAX serialized .eqx file, an ONNX file, an OMLT `NetworkDefinition`, or a JSON.
 
 ## Installation
 
@@ -64,7 +67,7 @@ troubleshooting.
 For a development install from source:
 
 ```bash
-git clone https://github.com/llueg/SiNDAE.git
+git clone https://github.com/Alves-research-group/SiNDAE.git
 cd SiNDAE
 pip install -e ".[full,test]"
 ```
@@ -190,14 +193,22 @@ See [`sindae-skills/README.md`](sindae-skills/README.md) for setup.
 ## Citation
 
 ```bibtex
-@misc{lueg2026sindae,
-      title={A Simultaneous Approach for Training Neural Differential-Algebraic Systems of Equations}, 
-      author={Laurens R. Lueg and Victor Alves and Daniel Schicksnus and John R. Kitchin and Carl D. Laird and Lorenz T. Biegler},
-      year={2026},
-      eprint={2504.04665},
-      archivePrefix={arXiv},
-      primaryClass={cs.LG},
-      url={https://arxiv.org/abs/2504.04665}, 
+@article{Lueg2026Simultaneous,
+author={Lueg, Laurens R.
+and Alves, Victor
+and Schicksnus, Daniel
+and Kitchin, John R.
+and Laird, Carl D.
+and Biegler, Lorenz T.},
+title={A simultaneous approach for training neural differential-algebraic systems of equations},
+journal={Computational Optimization and Applications},
+year={2026},
+month={Aug},
+day={17},
+abstract={Neural differential-algebraic systems of equations (DAEs) are a modeling paradigm where some unknown relationships within a DAE are modeled with a neural network and learned from data. Training neural DAEs is more challenging than training neural ordinary-differential equations (ODEs), particularly for higher-index systems. Existing approaches utilize differentiable pipelines, usually comprising integration, projection, operator splitting, or penalty terms for algebraic constraints. The parameters are then updated in a sequential manner using gradient descent. In this work, we employ the simultaneous approach for DAE-constrained parameter estimation instead. This defines a fully discretized nonlinear programing problem (NLP), whose solution simultaneously obtains the neural network parameters and the trajectories of the corresponding DAE, while enforcing constraint satisfaction at the discretization points. We show that with careful initialization and handling of the neural network terms, this approach can be efficient for smaller-scale problems, including higher-index DAEs. As the number of parameters or the amount of data increase, decomposition strategies are necessary to make this method scalable. We present a bi-level approach, where a tractable, discretized NLP is solved at every iteration of an outer gradient descent method, and the sensitivity of its solution with respect to the neural network parameters is evaluated in an efficient manner. We demonstrate the scalability of this decomposition with respect to the number of parameters and the size of the training data set.},
+issn={1573-2894},
+doi={10.1007/s10589-026-00823-y},
+url={https://doi.org/10.1007/s10589-026-00823-y}
 }
 ```
 
