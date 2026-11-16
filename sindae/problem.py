@@ -142,6 +142,74 @@ class ProblemDefinition(ABC):
         )
 
     # ------------------------------------------------------------------
+    # JAX ODE right-hand side (sequential / forward-integration baseline)
+    # ------------------------------------------------------------------
+    # These hooks expose the dynamics as a JAX-evaluable function so the
+    # standard sequential neural-DAE trainer (integrate-then-fit) can
+    # forward-integrate the ODE with the NN inside the RHS.  They mirror the
+    # Pyomo ``diffeq`` constraints in ``build_trajectory`` line-for-line.
+    #
+    # Only problems that reduce to an explicit ODE override ``rhs_jax``.
+    # Higher-index DAEs (e.g. the four-tank, index-2) deliberately leave it
+    # raising — a forward ODE integrator cannot handle them without bespoke
+    # index reduction, which is itself the evidence for what the inner NLP of
+    # the simultaneous / decomposition methods buys (DAE generality +
+    # rigorous algebraic/inequality constraint handling).
+
+    def rhs_jax(self, t, x, z, traj_consts):
+        """
+        JAX-evaluable ODE right-hand side ``dx/dt = f(t, x, z, traj_consts)``.
+
+        Parameters
+        ----------
+        t           : scalar time
+        x           : (state_dim,) jnp array — raw (un-normalised) state
+        z           : (z_dim,)     jnp array — raw NN output at this state
+        traj_consts : dict                    — per-trajectory constants
+                                                 (see ``rhs_traj_consts``)
+
+        Returns
+        -------
+        dxdt : (state_dim,) jnp array
+        """
+        raise NotImplementedError(
+            f"{type(self).__name__} does not expose a JAX ODE RHS (rhs_jax). "
+            "The standard sequential (forward-integration) baseline is not "
+            "applicable. This typically means the system is a higher-index "
+            "DAE that cannot be integrated as an explicit ODE without manual "
+            "index reduction.  Use the simultaneous or decomposition method, "
+            "which handle algebraic/inequality constraints and higher index "
+            "directly."
+        )
+
+    def rhs_traj_consts(self, traj_idx: int) -> dict:
+        """Return the dict of per-trajectory constants consumed by ``rhs_jax``."""
+        return {}
+
+    def lyapunov_jax(self, x, traj_consts):
+        """
+        JAX-evaluable Lyapunov function ``V(x)`` (optional).
+
+        Override on problems that define a Lyapunov descent path constraint;
+        the sequential trainer computes ``dV/dt = ∇V·f`` via a JVP.
+        """
+        raise NotImplementedError(
+            f"{type(self).__name__} does not define a JAX Lyapunov function."
+        )
+
+    def path_constraint_residuals_jax(self, t, x, z, traj_consts):
+        """
+        Return a 1-D jnp array ``g(t, x, z)`` of path-constraint values that
+        must satisfy ``g >= 0`` along the trajectory.
+
+        Used by the sequential trainer for (a) the optional soft penalty
+        ``mean(relu(-g)^2)`` and (b) the training-time constraint-violation
+        metric.  Default: no path constraints (empty array).
+        """
+        import jax.numpy as jnp
+        return jnp.zeros((0,))
+
+    # ------------------------------------------------------------------
     # Observed-data statistics — computed from self.obs_values
     # ------------------------------------------------------------------
 

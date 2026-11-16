@@ -12,3 +12,6 @@ plots/
 *.log
 .vscode/
 .idea/
+
+# macOS
+.DS_Store

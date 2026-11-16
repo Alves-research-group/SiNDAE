@@ -271,6 +271,40 @@ class LeslieGowerProblem(ProblemDefinition):
         def true_z(b, t):
             return b.z[t, 0] == p['r2'] - p['a2'] * b.x[t, 1] / b.x[t, 0]
 
+    # ── Sequential (forward-integration) baseline hooks ──────────────────────
+    # Mirror the Pyomo `diffeq` constraints above exactly.
+
+    def rhs_jax(self, t, x, z, traj_consts):
+        import jax.numpy as jnp
+        p = self.params
+        dx0 = x[0] * (p['r1'] - p['a1'] * x[1] - p['b1'] * x[0])
+        dx1 = x[1] * z[0]
+        return jnp.stack([dx0, dx1])
+
+    def lyapunov_jax(self, x, traj_consts):
+        # Mirrors lyap_constr in build_trajectory.
+        import jax.numpy as jnp
+        p = self.params
+        denom = p['a1'] * p['r2'] + p['a2'] * p['b1']
+        x0_ss = p['r1'] * p['a2'] / denom
+        x1_ss = p['r1'] * p['r2'] / denom
+        return (
+            jnp.log(x[0] / x0_ss) + x0_ss / x[0]
+            + (p['a1'] * x0_ss / p['a2'])
+            * (jnp.log(x[1] / x1_ss) + x1_ss / x[1])
+        )
+
+    def path_constraint_residuals_jax(self, t, x, z, traj_consts):
+        # Lyapunov descent path constraint: dV/dt <= 0, i.e. -dV/dt >= 0.
+        # Only active when lyap_descent is enabled (matches build_trajectory).
+        import jax
+        import jax.numpy as jnp
+        if not self.lyap_descent:
+            return jnp.zeros((0,))
+        dxdt = self.rhs_jax(t, x, z, traj_consts)
+        _, dVdt = jax.jvp(lambda xx: self.lyapunov_jax(xx, traj_consts), (x,), (dxdt,))
+        return jnp.stack([-dVdt])
+
 
 # ── Fed-Batch Bioreactor Problem ──────────────────────────────────────────────
 
@@ -374,3 +408,30 @@ class FedBatchBioreactorProblem(ProblemDefinition):
         @block.Constraint(block.t)
         def true_z(b, t):
             return b.z[t, 0] == mu_max * b.x[t, 2] / (Ks + b.x[t, 2])
+
+    # ── Sequential (forward-integration) baseline hooks ──────────────────────
+    # Mirror the Pyomo `diffeq` constraints above exactly.
+
+    def rhs_jax(self, t, x, z, traj_consts):
+        import jax.numpy as jnp
+        Feed, Ypx, Yxs = self.params['Feed'], self.params['Ypx'], self.params['Yxs']
+        Sf = traj_consts['Sf']
+        X, P, S, V = x[0], x[1], x[2], x[3]
+        mu = z[0]
+        dX = -Feed * (X / V) + mu * X
+        dP = -Feed * (P / X) + Ypx * mu * X
+        dS = Feed * (Sf - S) / V - mu * (X / Yxs)
+        dV = Feed
+        return jnp.stack([dX, dP, dS, dV])
+
+    def rhs_traj_consts(self, traj_idx):
+        # Sf is set per trajectory to the initial substrate value (cf. build_trajectory).
+        return {'Sf': float(self.ics[traj_idx, 2])}
+
+    def path_constraint_residuals_jax(self, t, x, z, traj_consts):
+        # The binding physical lower bound is S(t) >= 0 (substrate depletion;
+        # this is the constraint highlighted in the inference study, Fig. 8b).
+        # X, P, V remain non-negative naturally (V grows via Feed, X/P via growth),
+        # so S is the constraint a forward integrator can drive non-physical.
+        import jax.numpy as jnp
+        return jnp.stack([x[2]])

@@ -100,6 +100,7 @@ def plot_instance_data(
     legend_placement: Optional[str] = 'first',
     legend_kwargs: Optional[Dict] = None,
     var_names_as_ylabel: bool = False,
+    obs_style: Optional[Dict] = None,
 ) -> Tuple[plt.Figure, np.ndarray]:
     """
     Plot trajectory data from one or more InstanceData objects on a grid.
@@ -140,6 +141,10 @@ def plot_instance_data(
         - 'last': place in last panel
     legend_kwargs : dict, optional
         Forwarded to ``ax.legend()``.
+    obs_style : dict, optional
+        Overrides for the observed-data scatter markers (forwarded to
+        ``ax.scatter``).  Defaults to ``dict(s=18, color='red', marker='x',
+        linewidths=1.0)``.
 
     Returns
     -------
@@ -220,6 +225,10 @@ def plot_instance_data(
         legend_traj, legend_col = None, None
 
     # ── Scatter: observed data ─────────────────────────────────────────────────
+    # Default marker style; callers may override any of these via ``obs_style``.
+    _obs_style = dict(s=18, zorder=5, color='red', marker='x', linewidths=1.0)
+    if obs_style:
+        _obs_style.update(obs_style)
     if obs_times is not None and obs_values is not None and obs_names is not None:
         for i in range(num_traj):
             t_obs = obs_times[i]
@@ -234,8 +243,7 @@ def plot_instance_data(
                 obs_label = 'data' if (i == legend_traj and col == legend_col) else None
                 axes[i, col].scatter(
                     t_obs, v_obs[:, k],
-                    s=18, zorder=5, color='red', marker='x',
-                    linewidths=1.0, label=obs_label,
+                    label=obs_label, **_obs_style,
                 )
 
     # ── Axis decorations ───────────────────────────────────────────────────────
@@ -313,3 +321,53 @@ def plot_training_history(
 
     fig.tight_layout()
     return fig, np.asarray(axes)
+
+
+def plot_constraint_violation_history(
+    histories: Sequence[Tuple[dict, str, Optional[Dict]]],
+    key: str = 'min_constraint_history',
+    step_key: str = 'eval_steps',
+    threshold: float = 0.0,
+    ylabel: str = r'$\min_t\ g(t)$',
+    fig: Optional[plt.Figure] = None,
+    ax: Optional[plt.Axes] = None,
+) -> Tuple[plt.Figure, plt.Axes]:
+    """
+    Overlay training-time constraint-satisfaction curves for several methods.
+
+    Each method's ``history[key]`` is plotted against ``history[step_key]``
+    (the steps at which the dense constraint diagnostic was recorded).  A
+    horizontal line at ``threshold`` marks the feasibility boundary: values
+    below it indicate constraint violation.
+
+    Intended for the reviewer point-3 figure (e.g. ``min S(t)`` vs iteration:
+    the decomposition stays >= 0, a penalty-based sequential baseline dips
+    below 0).
+
+    Parameters
+    ----------
+    histories : list of (history_dict, label, line_kwargs)
+    key       : history key holding the per-eval constraint value
+    step_key  : history key holding the eval step indices
+    threshold : feasibility boundary (default 0.0)
+    """
+    if fig is None or ax is None:
+        fig, ax = plt.subplots(1, 1, figsize=(6, 4))
+
+    for ds_idx, (hist, label, kw) in enumerate(histories):
+        vals = np.asarray(hist.get(key, []), dtype=float)
+        if vals.size == 0:
+            continue
+        steps = hist.get(step_key)
+        steps = np.arange(1, len(vals) + 1) if steps is None or len(steps) != len(vals) else np.asarray(steps)
+        style = dict(_DEFAULT_STYLES[ds_idx % len(_DEFAULT_STYLES)])
+        if kw:
+            style.update(kw)
+        ax.plot(steps, vals, label=label, **style)
+
+    ax.axhline(threshold, color='gray', ls=':', lw=1.0, zorder=0)
+    ax.set_xlabel('step')
+    ax.set_ylabel(ylabel)
+    ax.legend(loc='best')
+    fig.tight_layout()
+    return fig, ax

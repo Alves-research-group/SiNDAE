@@ -20,3 +20,6 @@ from sindae.algorithms.simultaneous.model_builder import extract_mlp as extract_
 from sindae.algorithms.simultaneous.train import solve_simultaneous as solve_simultaneous
 from sindae.algorithms.inference import make_inference_model as make_inference_model
 from sindae.algorithms.inference import solve_inference as solve_inference
+from sindae.algorithms.sequential.train import SequentialConfig as SequentialConfig
+from sindae.algorithms.sequential.train import train_sequential as train_sequential
+from sindae.algorithms.sequential.train import integrate_to_instance_data as integrate_to_instance_data
