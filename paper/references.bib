@@ -42,16 +42,6 @@ url={https://doi.org/10.1007/s10589-026-00823-y}
   year    = {2006},
 }
 
-@article{hart2011pyomo,
-  title   = {Pyomo: modeling and solving mathematical programs in Python},
-  author  = {Hart, William E and Watson, Jean-Paul and Woodruff, David L},
-  journal = {Mathematical Programming Computation},
-  volume  = {3},
-  number  = {3},
-  pages   = {219--260},
-  year    = {2011},
-}
-
 @software{jax2018github,
   author  = {Bradbury, James and Frostig, Roy and Hawkins, Peter and Johnson, Matthew James and Leary, Chris and Maclaurin, Dougal and Necula, George and Paszke, Adam and VanderPlas, Jake and Wanderman-Milne, Skye and Zhang, Qiao},
   title   = {{JAX}: composable transformations of {Python}+{NumPy} programs},
@@ -176,20 +166,6 @@ issn = {0301-4797},
 doi = {https://doi.org/10.1016/j.jenvman.2024.123870},
 url = {https://www.sciencedirect.com/science/article/pii/S030147972403857X},
 author = {Xiangjun Huang and Kyriakos Kandris and Evina Katsou}
-}
-
-@article{Mukherjee2025MEB,
-title = {Development of mass, energy, and thermodynamics constrained steady-state and dynamic neural networks for interconnected chemical systems},
-journal = {Chemical Engineering Science},
-volume = {309},
-pages = {121506},
-year = {2025},
-issn = {0009-2509},
-doi = {https://doi.org/10.1016/j.ces.2025.121506},
-url = {https://www.sciencedirect.com/science/article/pii/S000925092500329X},
-author = {Angan Mukherjee and Debangsu Bhattacharyya},
-keywords = {Neural networks, Mass conservation, Energy conservation, Thermodynamics constraints, Interconnected systems},
-abstract = {This paper discusses the development of steady-state and dynamic modeling algorithms for mass, energy, and thermodynamics constrained neural networks (METCNNs) for interconnected chemical process systems. The METCNN models can ‘exactly’ conserve the overall system mass and energy balances, as well as certain thermodynamics constraints during both training and forward problems. The proposed approaches can accommodate an outer layer integer programming problem for selection of the best thermodynamics model from a family of candidates given a particular transient dataset. The developed algorithms for both steady-state and dynamic METCNNs are tested for an interconnected chemical system in presence of noise and bias in training data. For all case studies considered in this work, it has been observed that the optimal METCNN models ensure exact conservation of system physics and consistently converge close to the system truth, even when trained against complex dynamic noisy measurements that do not necessarily satisfy the system physics.}
 }
 
 @article{scikit-learn,
@@ -356,18 +332,6 @@ keywords = {scalable machine learning, distributed algorithms, apache spark}
   doi     = {10.1016/j.compchemeng.2013.08.008}
 }
 
-@article{sharma2022sgml,
-  title   = {A hybrid science-guided machine learning approach for modeling
-             chemical processes: A review},
-  author  = {Sharma, Niket and Liu, Y. A.},
-  journal = {AIChE Journal},
-  volume  = {68},
-  number  = {5},
-  pages   = {e17609},
-  year    = {2022},
-  doi     = {10.1002/aic.17609}
-}
-
 @article{psichogios1992hybrid,
   title   = {A hybrid neural network-first principles approach to process modeling},
   author  = {Psichogios, Dimitris C. and Ungar, Lyle H.},
@@ -406,7 +370,7 @@ issn = {1526-5528},
 url = {https://doi.org/10.1287/ijoc.2023.1272},
 doi = {10.1287/ijoc.2023.1272},
 abstract = {We describe PyNumero, an open-source, object-oriented programming framework in Python that supports rapid development of performant parallel algorithms for structured nonlinear programming problems (NLP’s) using the Message Passing Interface (MPI). PyNumero provides three fundamental building blocks for developing NLP algorithms: a fast interface for calculating first and second derivatives with the AMPL Solver Library (ASL), a number of interfaces to efficient linear solvers, and block-structured vectors and matrices based on NumPy, SciPy, and MPI that support distributed parallel storage and computation. PyNumero’s design enables efficient, parallel algorithm development using high-level Python syntax while keeping expensive numerical calculations in fast, compiled implementations based on languages like C and Fortran. To demonstrate the utility of PyNumero, we also present Parapint, a Python package built on PyNumero for parallel solution of dynamic optimization problems. Parapint includes a parallel interior-point solver based on Schur-Complement decomposition. We illustrate the effectiveness of PyNumero for developing parallel algorithms with both code examples and scalability analyses for parallel matrix-vector dot products, parallel solution of structured systems of linear equations using Schur-Complement decomposition, and the parallel solution of a two-dimensional PDE optimal control problem. Our numerical results show nearly perfect scaling to more than 1,000 cores for large matrix-vector dot products and structured linear systems. Moreover, we obtain more than 354 times speedup for the optimal control example.History: Accepted by Alice Smith, EIC/Ted Ralphs, Area Editor/Software Tools.Funding: This work was funded in part by the Institute for the Design of Advanced Energy Systems (IDAES) with funding from the Office of Fossil Energy, Cross-Cutting Research, U.S. Department of Energy. This work was also funded by Sandia National Laboratories Laboratory Directed Research and Development (LDRD) program.Supplemental Material: The software that supports the findings of this study is available within the paper and its Supplemental Information () as well as from the IJOC GitHub software repository () at ().},
-journal = {INFORMS J. on Computing},
+journal = {INFORMS Journal on Computing},
 month = mar,
 pages = {509–517},
 numpages = {9},
