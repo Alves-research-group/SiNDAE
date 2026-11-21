@@ -49,6 +49,19 @@ jobs:
         id: pages
         uses: actions/configure-pages@v5
 
+      # The Leslie-Gower browser page: POUNCE's two wheels for Pyodide from
+      # examples/web/leslie_gower/pounce/, with Pyodide, NumPy, Pyomo and the
+      # sindae package in one HTML file (examples/web/leslie_gower/build.mjs).
+      # docs/examples_gallery/leslie_gower_browser.md links to the file, so
+      # the site build that follows copies it into the site.
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Build the Leslie-Gower browser page
+        run: node examples/web/leslie_gower/build.mjs
+
       - name: Build the site
         env:
           BASE_URL: ${{ steps.pages.outputs.base_path }}
