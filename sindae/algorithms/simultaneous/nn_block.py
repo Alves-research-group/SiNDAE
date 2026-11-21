@@ -1,12 +1,12 @@
 # type: ignore
-import jax
-import jax.numpy as jnp
-import equinox as eqx
+from __future__ import annotations
+
 import pyomo.environ as pe
-from typing import List, Callable, Optional
+from typing import TYPE_CHECKING, List, Callable, Optional
 import numpy as np
 
-from sindae.nn_utils import SimpleMLP, _act_jax2str, _act_str2jax
+if TYPE_CHECKING:
+    from sindae.nn_utils import SimpleMLP
 
 
 def _act_str2pyo(activation: str) -> Callable:
@@ -203,6 +203,11 @@ def make_nn_output_expression(
 
 def nn_block_to_eqx_mlp(nn_block: NNBlock) -> SimpleMLP:
     """Convert a Pyomo NNBlock (after a simultaneous solve) to a JAX SimpleMLP."""
+    import jax
+    import jax.numpy as jnp
+    import equinox as eqx
+    from sindae.nn_utils import SimpleMLP, _act_str2jax
+
     mlp = SimpleMLP(
         in_size=nn_block.input_dim,
         out_size=nn_block.output_dim,
@@ -224,14 +229,30 @@ def nn_block_to_eqx_mlp(nn_block: NNBlock) -> SimpleMLP:
     return new_mlp
 
 
+def _act_name(activation) -> str:
+    """The name of an activation given as its name or as its JAX function."""
+    if isinstance(activation, str):
+        return activation
+    from sindae.nn_utils import _act_jax2str
+
+    return _act_jax2str(activation)
+
+
 def eqx_mlp_to_nn_block(mlp: SimpleMLP, weight_fix_threshold: float = 0) -> NNBlock:
-    """Convert a JAX SimpleMLP to a Pyomo NNBlock (for simultaneous model building)."""
+    """Convert a JAX SimpleMLP to a Pyomo NNBlock (for simultaneous model building).
+
+    ``mlp`` may be any network with SimpleMLP's attributes ``in_size``,
+    ``out_size``, ``widths``, ``activations`` and ``layers`` with ``weight``
+    and ``bias`` arrays. Its activations may be JAX functions or the names
+    ``"tanh"``, ``"softplus"`` and ``"swish"``. A network of NumPy arrays with
+    named activations builds the NNBlock without importing JAX.
+    """
     nn_block = NNBlock(
         input_dim=mlp.in_size,
         output_dim=mlp.out_size,
         widths=mlp.widths,
         weight_fix_threshold=weight_fix_threshold,
-        activations=[_act_jax2str(actf) for actf in mlp.activations],
+        activations=[_act_name(actf) for actf in mlp.activations],
     )
     weights = [np.array(layer.weight) for layer in mlp.layers]
     bias    = [np.array(layer.bias)   for layer in mlp.layers]

@@ -1,0 +1,1512 @@
+<!doctype html>
+<!--
+  The Leslie-Gower page: SiNDAE's examples/leslie_gower.py with
+  METHOD = 'simul' and USE_GBM = False, in three steps that run in this
+  page. Step 1 solves the ground truth from each initial condition and adds
+  noise to every Nth point. Step 2 runs SiNDAE's smoother, pretrains the
+  network, and solves SiNDAE's simultaneous NLP with the network written
+  as Pyomo algebra. Step 3 solves the model with the trained network in
+  place of the predator's growth term, beside the ground truth, from each
+  initial condition given. pyomo-pounce solves each model with pounce's
+  Python package in Pyodide, and pounce's sensitivity of the solved NLPs
+  gives the standard errors of the trained weights and the bands of steps 2
+  and 3.
+
+  build.mjs writes the page file from this file with Pyodide 0.28.3 with
+  NumPy, the Pyomo 6.10.1 wheel, pounce's two wheels for Pyodide, and the
+  page's Python files, SiNDAE's among them, inside it, so it opens from a
+  file with no network.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Leslie-Gower predator-prey UDE</title>
+    <!-- The docs site's icon, beside browser/ where the docs workflow publishes this page. -->
+    <link rel="icon" href="../favicon.ico" />
+    <style>
+      :root {
+        color-scheme: light;
+        --paper: #ffffff;
+        --panel: #ffffff;
+        --ink: #1d2327;
+        --muted: #5f6b73;
+        --line: #d9d5c8;
+        --accent: #1c7ed6;
+        --good: #2b8a3e;
+        --bad: #c92a2a;
+        --t0: #1f77b4;
+        --t1: #2ca02c;
+        --t2: #8c564b;
+        --t3: #17becf;
+        --t4: #bcbd22;
+        --t5: #556b2f;
+        --due: #8b5cf6;
+        --meas: #ec6660;
+        --field: #f6f7f9;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) {
+          color-scheme: dark;
+          --paper: #121212;
+          --panel: #1c1c1c;
+          --ink: #e9ecef;
+          --muted: #9aa5ad;
+          --line: #343b40;
+          --accent: #74c0fc;
+          --good: #69db7c;
+          --bad: #ff8787;
+          --t0: #6baed6;
+          --t1: #74c476;
+          --t2: #c49c94;
+          --t3: #9edae5;
+          --t4: #dbdb8d;
+          --t5: #a9c26b;
+          --due: #b197fc;
+          --meas: #f28b86;
+          --field: #262626;
+        }
+      }
+      :root[data-theme="dark"] {
+        color-scheme: dark;
+        --paper: #121212;
+        --panel: #1c1c1c;
+        --ink: #e9ecef;
+        --muted: #9aa5ad;
+        --line: #343b40;
+        --accent: #74c0fc;
+        --good: #69db7c;
+        --bad: #ff8787;
+        --t0: #6baed6;
+        --t1: #74c476;
+        --t2: #c49c94;
+        --t3: #9edae5;
+        --t4: #dbdb8d;
+        --t5: #a9c26b;
+        --due: #b197fc;
+        --meas: #f28b86;
+        --field: #262626;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+      }
+      header {
+        padding: 10px 20px 4px;
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      header h1 {
+        margin: 0;
+        font-size: 20px;
+      }
+      header p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      header p.solver {
+        color: var(--ink);
+        font-weight: 600;
+      }
+      .about {
+        margin: 4px 20px 6px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.35fr);
+        gap: 18px;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 8px 14px;
+        font-size: 14px;
+      }
+      .about h2 {
+        margin: 0 0 2px;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+      }
+      .about p {
+        margin: 4px 0;
+      }
+      .about .eq {
+        margin: 6px 0 6px 14px;
+      }
+      /* The uncertainty section spans the header under its three columns, in three parts of its own. */
+      .about .uq {
+        grid-column: 1 / -1;
+        border-top: 1px solid var(--line);
+        padding-top: 8px;
+      }
+      .about .uq-parts {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px;
+      }
+      .about h3 {
+        margin: 6px 0 2px;
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .about math {
+        font-family: "Cambria Math", "STIX Two Math", math;
+        font-size: 16px;
+      }
+      @media (max-width: 860px) {
+        .about {
+          grid-template-columns: minmax(0, 1fr);
+          margin: 4px 16px 6px;
+        }
+        .about .uq-parts {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+      main {
+        padding: 6px 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 8px 12px 10px;
+        display: grid;
+        grid-template-columns: 300px minmax(0, 1fr);
+        gap: 6px 18px;
+      }
+      .card h2 {
+        grid-column: 1 / -1;
+        margin: 0;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+      }
+      .card h2 .status {
+        text-transform: none;
+        letter-spacing: 0;
+        font-size: 13px;
+        font-weight: normal;
+      }
+      .options {
+        display: grid;
+        grid-template-columns: 1fr 86px;
+        gap: 3px 8px;
+        align-content: start;
+        font-size: 14px;
+      }
+      .options label {
+        align-self: center;
+      }
+      .options input,
+      .options select {
+        width: 100%;
+        font: inherit;
+        font-size: 14px;
+        padding: 1px 4px;
+        color: var(--ink);
+        background: var(--field);
+        border: 1px solid var(--line);
+        border-radius: 5px;
+      }
+      .options input,
+      .options select {
+        align-self: center;
+      }
+      .options input.check {
+        width: auto;
+        justify-self: start;
+        margin: 0;
+      }
+      .options .wide {
+        grid-column: 1 / -1;
+      }
+      .options .group {
+        grid-column: 1 / -1;
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      table.ics {
+        border-collapse: collapse;
+        width: 100%;
+        font-size: 14px;
+      }
+      table.ics th {
+        font-weight: normal;
+        color: var(--muted);
+        text-align: left;
+        font-size: 13px;
+      }
+      table.ics input {
+        width: 100%;
+      }
+      table.ics td {
+        padding: 1px 3px 1px 0;
+      }
+      table.ics td.swatch {
+        width: 14px;
+      }
+      table.ics td.swatch span {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+      }
+      button {
+        font: inherit;
+        font-size: 14px;
+        color: var(--ink);
+        background: var(--field);
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        padding: 3px 10px;
+        cursor: pointer;
+      }
+      .metrics-title {
+        margin: 10px 0 2px;
+        color: var(--muted);
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      table.metrics {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+        font-variant-numeric: tabular-nums;
+        border-top: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+      }
+      table.metrics th {
+        font-weight: 600;
+        font-size: 12px;
+        color: var(--muted);
+        text-align: right;
+        padding: 3px 0 3px 12px;
+        border-bottom: 1px solid var(--line);
+      }
+      table.metrics th.group {
+        text-align: center;
+        border-bottom: 1px solid var(--line);
+      }
+      table.metrics td {
+        text-align: right;
+        padding: 3px 0 3px 12px;
+      }
+      table.metrics th:first-child,
+      table.metrics td:first-child {
+        text-align: left;
+        padding-left: 0;
+      }
+      table.metrics tr.total td {
+        border-top: 1px solid var(--line);
+        font-weight: 600;
+      }
+      table.metrics td .swatch {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        margin-right: 6px;
+      }
+      button.due {
+        background: var(--due);
+        border-color: var(--due);
+        color: var(--panel);
+        font-weight: 600;
+      }
+      .flag {
+        align-self: center;
+        color: var(--due);
+        font-size: 13px;
+      }
+      button.x {
+        padding: 0 6px;
+        font-size: 13px;
+      }
+      button:disabled {
+        cursor: default;
+        opacity: 0.5;
+      }
+      .tools {
+        grid-column: 1 / -1;
+        display: flex;
+        gap: 8px;
+        margin-top: 4px;
+      }
+      /* The plot fills the card's height beside the options, and is 300 px at least. */
+      .plot {
+        min-width: 0;
+        min-height: 300px;
+        position: relative;
+      }
+      /* A plot across the whole card, under the options and the plots beside them. */
+      .plot.full {
+        grid-column: 1 / -1;
+        min-height: 280px;
+      }
+      .plots {
+        display: grid;
+        grid-template-rows: 1fr 1fr;
+        gap: 8px;
+        min-width: 0;
+      }
+      canvas {
+        display: block;
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+      }
+      .hint {
+        color: var(--muted);
+        font-size: 13px;
+        margin: 2px 0 0;
+      }
+      .good {
+        color: var(--good);
+      }
+      .bad {
+        color: var(--bad);
+      }
+      footer {
+        padding: 8px 20px 16px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      footer pre {
+        max-height: 300px;
+        overflow: auto;
+        font-size: 12px;
+        white-space: pre-wrap;
+      }
+      @media (max-width: 860px) {
+        .card {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .plot {
+          min-height: 520px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div>
+        <h1>Leslie-Gower predator-prey UDE</h1>
+        <p class="solver">Solver: pounce, the solver for nonlinear programs, running in this page, with each model written by Pyomo in Python running in this page.</p>
+        <p>SiNDAE's Leslie-Gower example, examples/leslie_gower.py, trained simultaneously.</p>
+      </div>
+      <button type="button" id="theme">Dark</button>
+    </header>
+    <section class="about">
+      <div>
+        <h2>The ground truth</h2>
+        <p>
+          The Leslie-Gower predator-prey model of Bazykin (1998), as SiNDAE's LeslieGowerProblem writes it, with the prey
+          x<sub>0</sub> and the predator x<sub>1</sub>:
+        </p>
+        <div class="eq"><math displaystyle="true"><mrow><mfrac><mrow><mi>d</mi><msub><mi>x</mi><mn>0</mn></msub></mrow><mrow><mi>d</mi><mi>t</mi></mrow></mfrac><mo>=</mo><mrow><msub><mi>x</mi><mn>0</mn></msub><mo>(</mo><msub><mi>r</mi><mn>1</mn></msub><mo>−</mo><msub><mi>a</mi><mn>1</mn></msub><msub><mi>x</mi><mn>1</mn></msub><mo>−</mo><msub><mi>b</mi><mn>1</mn></msub><msub><mi>x</mi><mn>0</mn></msub><mo>)</mo></mrow></mrow></math></div><div class="eq"><math displaystyle="true"><mrow><mfrac><mrow><mi>d</mi><msub><mi>x</mi><mn>1</mn></msub></mrow><mrow><mi>d</mi><mi>t</mi></mrow></mfrac><mo>=</mo><msub><mi>x</mi><mn>1</mn></msub><msub><mi>z</mi><mn>0</mn></msub><mo>,</mo><mspace width="1em"/><msub><mi>z</mi><mn>0</mn></msub><mo>=</mo><msub><mi>r</mi><mn>2</mn></msub><mo>−</mo><msub><mi>a</mi><mn>2</mn></msub><mfrac><msub><mi>x</mi><mn>1</mn></msub><msub><mi>x</mi><mn>0</mn></msub></mfrac></mrow></math></div>
+        <p>
+          The prey grows logistically and the predator eats the prey. The predator grows logistically too, with a carrying capacity
+          proportional to the prey, which is the Leslie-Gower form. Step 1 solves this model by collocation from each initial condition
+          and adds Gaussian noise of standard deviation σ<sub>0</sub> and σ<sub>1</sub> to every Nth point, which gives the
+          measurements. The page starts from SiNDAE's values, r<sub>1</sub> = 0.2, a<sub>1</sub> = 0.2, b<sub>1</sub> = 0.1,
+          r<sub>2</sub> = 0.2 and a<sub>2</sub> = 0.01, from x<sub>0</sub> = 1 and x<sub>1</sub> = 0.1 over 0 ≤ t ≤ 80.
+        </p>
+      </div>
+      <div>
+        <h2>The trained system</h2>
+        <p>The prey's equation stays as it is, and a neural network f<sub>NN</sub>(x, θ) of the states takes the place of z<sub>0</sub>, as eq. (3) of SiNDAE's Leslie-Gower notebook writes it:</p>
+        <div class="eq"><math displaystyle="true"><mrow><mfrac><mrow><mi>d</mi><msub><mi>x</mi><mn>0</mn></msub></mrow><mrow><mi>d</mi><mi>t</mi></mrow></mfrac><mo>=</mo><mrow><msub><mi>x</mi><mn>0</mn></msub><mo>(</mo><msub><mi>r</mi><mn>1</mn></msub><mo>−</mo><msub><mi>a</mi><mn>1</mn></msub><msub><mi>x</mi><mn>1</mn></msub><mo>−</mo><msub><mi>b</mi><mn>1</mn></msub><msub><mi>x</mi><mn>0</mn></msub><mo>)</mo></mrow></mrow></math></div><div class="eq"><math displaystyle="true"><mrow><mfrac><mrow><mi>d</mi><msub><mi>x</mi><mn>1</mn></msub></mrow><mrow><mi>d</mi><mi>t</mi></mrow></mfrac><mo>=</mo><msub><mi>x</mi><mn>1</mn></msub><msub><mover><mi>z</mi><mo>^</mo></mover><mn>0</mn></msub><mo>,</mo><mspace width="1em"/><msub><mover><mi>z</mi><mo>^</mo></mover><mn>0</mn></msub><mo>=</mo><mrow><msub><mi>σ</mi><mi>z</mi></msub><msub><mi>f</mi><mtext>NN</mtext></msub><mo>(</mo><mfrac><mrow><mi>x</mi><mo>−</mo><msub><mi>μ</mi><mi>x</mi></msub></mrow><msub><mi>σ</mi><mi>x</mi></msub></mfrac><mo>,</mo><mi>θ</mi><mo>)</mo><mo>+</mo><msub><mi>μ</mi><mi>z</mi></msub></mrow></mrow></math></div>
+        <p>
+          f<sub>NN</sub> is a multilayer perceptron with weights and biases θ, two inputs, hidden layers of 4 and 4 with softplus by default, and one linear output. The means μ and
+          standard deviations σ come from the smoother's solution. The page starts the weights as SiNDAE's network does, uniform on
+          ±1/√(inputs).
+        </p>
+        <p>
+          The Lyapunov option adds SiNDAE's constraint dV/dt ≤ 0 at every collocation time after the first, in the smoother and so in
+          the training NLP, with V the ground truth's Lyapunov function about its equilibrium x<sub>0</sub><sup>*</sup> =
+          r<sub>1</sub>a<sub>2</sub>/(a<sub>1</sub>r<sub>2</sub> + a<sub>2</sub>b<sub>1</sub>), x<sub>1</sub><sup>*</sup> =
+          r<sub>1</sub>r<sub>2</sub>/(a<sub>1</sub>r<sub>2</sub> + a<sub>2</sub>b<sub>1</sub>):
+        </p>
+        <div class="eq"><math displaystyle="true"><mrow><mi>V</mi><mo>=</mo><mrow><mi>ln</mi><mo>(</mo><mfrac><msub><mi>x</mi><mn>0</mn></msub><msubsup><mi>x</mi><mn>0</mn><mo>*</mo></msubsup></mfrac><mo>)</mo></mrow><mo>+</mo><mfrac><msubsup><mi>x</mi><mn>0</mn><mo>*</mo></msubsup><msub><mi>x</mi><mn>0</mn></msub></mfrac><mo>+</mo><mfrac><mrow><msub><mi>a</mi><mn>1</mn></msub><msubsup><mi>x</mi><mn>0</mn><mo>*</mo></msubsup></mrow><msub><mi>a</mi><mn>2</mn></msub></mfrac><mrow><mo>(</mo><mrow><mi>ln</mi><mo>(</mo><mfrac><msub><mi>x</mi><mn>1</mn></msub><msubsup><mi>x</mi><mn>1</mn><mo>*</mo></msubsup></mfrac><mo>)</mo></mrow><mo>+</mo><mfrac><msubsup><mi>x</mi><mn>1</mn><mo>*</mo></msubsup><msub><mi>x</mi><mn>1</mn></msub></mfrac><mo>)</mo></mrow></mrow></math></div>
+      </div>
+      <div>
+        <h2>The training</h2>
+        <p>
+          Step 2 runs three things in turn. The smoother fits the states to the measurements with z<sub>0</sub> free at every point and
+          a penalty on (dz<sub>0</sub>/dt)<sup>2</sup>. The pretraining fits f<sub>NN</sub> to the smoother's (x, z<sub>0</sub>) by
+          Adam. The simultaneous NLP of Lueg et al. (2025) then chooses θ with the states at every collocation point, starting from the
+          smoother's solution, to minimize
+        </p>
+        <div class="eq"><math displaystyle="true"><mrow><munder><mo>min</mo><mrow><mi>θ</mi><mo>,</mo><mi>x</mi></mrow></munder><munder><mo>∑</mo><mi>k</mi></munder><mfrac><mn>1</mn><mrow><mn>2</mn><msub><mi>n</mi><mi>k</mi></msub></mrow></mfrac><munder><mo>∑</mo><mrow><mi>t</mi><mo>∈</mo><msub><mi>T</mi><mi>k</mi></msub></mrow></munder><munderover><mo>∑</mo><mrow><mi>j</mi><mo>=</mo><mn>0</mn></mrow><mn>1</mn></munderover><msup><mrow><mo>(</mo><mrow><msub><mover><mi>y</mi><mo>~</mo></mover><mrow><mi>k</mi><mo>,</mo><mi>j</mi></mrow></msub><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow><mo>−</mo><mrow><msubsup><mover><mi>y</mi><mo>~</mo></mover><mrow><mi>k</mi><mo>,</mo><mi>j</mi></mrow><mtext>meas</mtext></msubsup><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow><mo>)</mo></mrow><mn>2</mn></msup></mrow></math></div><div class="eq"><math displaystyle="true"><mrow><mspace width="3em"/><mo>+</mo><mi>λ</mi><msup><mrow><mo>‖</mo><mi>θ</mi><mo>‖</mo></mrow><mn>2</mn></msup></mrow></math></div>
+        <p>
+          over the trajectories k and the n<sub>k</sub> collocation times T<sub>k</sub> of each, with each measured state interpolated
+          linearly to those times as SiNDAE's _compute_norm_targets does, subject to the two ODEs written by collocation and to
+        </p>
+        <div class="eq"><math displaystyle="true"><mrow><msub><mover><mi>z</mi><mo>^</mo></mover><mn>0</mn></msub><mo>=</mo><mrow><msub><mi>σ</mi><mi>z</mi></msub><msub><mi>f</mi><mtext>NN</mtext></msub><mo>(</mo><mfrac><mrow><mi>x</mi><mo>−</mo><msub><mi>μ</mi><mi>x</mi></msub></mrow><msub><mi>σ</mi><mi>x</mi></msub></mfrac><mo>,</mo><mi>θ</mi><mo>)</mo><mo>+</mo><msub><mi>μ</mi><mi>z</mi></msub></mrow></mrow></math></div>
+        <p>
+          at every collocation point. ỹ is each measured state standardized by the measurements' mean and standard deviation, and λ is
+          the weight on the squares of the weights and biases. f<sub>NN</sub>'s layers are written into the NLP as Pyomo expressions, so pounce treats θ as
+          variables like the states. Step 3, the inference, fixes θ and solves the trained system from
+          each initial condition, beside the ground truth.
+        </p>
+      </div>
+      <div class="uq">
+        <h2>Uncertainty quantification</h2>
+        <p>
+          The standard errors and the bands come from pounce's sensitivity of the solved NLPs, each derivative one backsolve with the KKT
+          factorization of the solve. In the training NLP the measurements y are mutable Params, and in the inference NLP the weights θ
+          are.
+        </p>
+        <div class="uq-parts">
+          <div>
+            <h3>The trained weights</h3>
+            <div class="eq"><math displaystyle="true"><mrow><mrow><mi>Cov</mi><mo stretchy="false">(</mo><mi>θ</mi><mo stretchy="false">)</mo></mrow><mo>=</mo><mfrac><mrow><mi>d</mi><mi>θ</mi></mrow><mrow><mi>d</mi><mi>y</mi></mrow></mfrac><msub><mi>Σ</mi><mi>y</mi></msub><msup><mrow><mo>(</mo><mfrac><mrow><mi>d</mi><mi>θ</mi></mrow><mrow><mi>d</mi><mi>y</mi></mrow></mfrac><mo>)</mo></mrow><mi>T</mi></msup></mrow></math></div>
+            <div class="eq"><math displaystyle="true"><mrow><msub><mi>Σ</mi><mi>y</mi></msub><mo>=</mo><mi>diag</mi><mo stretchy="false">(</mo><msup><msub><mi>σ</mi><mi>j</mi></msub><mn>2</mn></msup><mo stretchy="false">)</mo></mrow></math></div>
+            <p>with σ<sub>j</sub><sup>2</sup> for each measurement of x<sub>j</sub>, the variance of the noise step 1 adds. Step 2's last row shows each weight and bias θ<sub>i</sub> with ±2 SE(θ<sub>i</sub>), where</p>
+            <div class="eq"><math displaystyle="true"><mrow><mrow><mi>SE</mi><mo stretchy="false">(</mo><msub><mi>θ</mi><mi>i</mi></msub><mo stretchy="false">)</mo></mrow><mo>=</mo><msqrt><msub><mrow><mi>Cov</mi><mo stretchy="false">(</mo><mi>θ</mi><mo stretchy="false">)</mo></mrow><mrow><mi>i</mi><mi>i</mi></mrow></msub></msqrt></mrow></math></div>
+          </div>
+          <div>
+            <h3>The trained states</h3>
+            <div class="eq"><math displaystyle="true"><mrow><mrow><mi>Var</mi><mo stretchy="false">(</mo><mrow><msub><mi>x</mi><mi>j</mi></msub><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow><mo stretchy="false">)</mo></mrow><mo>=</mo><mfrac><mrow><mi>d</mi><mrow><msub><mi>x</mi><mi>j</mi></msub><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow></mrow><mrow><mi>d</mi><mi>y</mi></mrow></mfrac><msub><mi>Σ</mi><mi>y</mi></msub><msup><mrow><mo>(</mo><mfrac><mrow><mi>d</mi><mrow><msub><mi>x</mi><mi>j</mi></msub><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow></mrow><mrow><mi>d</mi><mi>y</mi></mrow></mfrac><mo>)</mo></mrow><mi>T</mi></msup></mrow></math></div>
+            <p>at every collocation time, for x<sub>0</sub>, x<sub>1</sub> and ẑ<sub>0</sub>, from the same derivatives with respect to y. Step 2's bands are</p>
+            <div class="eq"><math displaystyle="true"><mrow><mrow><msub><mi>x</mi><mi>j</mi></msub><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow><mo>±</mo><mn>2</mn><msqrt><mrow><mi>Var</mi><mo stretchy="false">(</mo><mrow><msub><mi>x</mi><mi>j</mi></msub><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow><mo stretchy="false">)</mo></mrow></msqrt></mrow></math></div>
+          </div>
+          <div>
+            <h3>The inference</h3>
+            <div class="eq"><math displaystyle="true"><mrow><mrow><mi>Var</mi><mo stretchy="false">(</mo><mrow><msub><mi>x</mi><mi>j</mi></msub><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow><mo stretchy="false">)</mo></mrow><mo>=</mo><mfrac><mrow><mi>d</mi><mrow><msub><mi>x</mi><mi>j</mi></msub><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow></mrow><mrow><mi>d</mi><mi>θ</mi></mrow></mfrac><mrow><mi>Cov</mi><mo stretchy="false">(</mo><mi>θ</mi><mo stretchy="false">)</mo></mrow><msup><mrow><mo>(</mo><mfrac><mrow><mi>d</mi><mrow><msub><mi>x</mi><mi>j</mi></msub><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow></mrow><mrow><mi>d</mi><mi>θ</mi></mrow></mfrac><mo>)</mo></mrow><mi>T</mi></msup></mrow></math></div>
+            <p>
+              at every collocation time of each initial condition, with the training's Cov(θ). Step 3's bands are ±2 standard deviations
+              the same way, and its table gives the share of the ground truth's points inside them.
+            </p>
+          </div>
+        </div>
+        <p>
+          Each is first order in the noise and holds fixed the means and standard deviations that standardize the data fit and the network.
+          The bands show the spread the noise in the measurements causes, not the difference the network's form and λ cause between the
+          trained model and the ground truth. The derivatives come from the KKT factorization of the training solve, so they may be
+          inaccurate when the training uses L-BFGS in place of the exact Hessian.
+        </p>
+      </div>
+    </section>
+    <main>
+      <section class="card" id="step-generate">
+        <h2>1. Generate data <span class="status" id="status-generate"></span></h2>
+        <div>
+          <div class="options">
+            <div class="group">The ground truth</div>
+            <label for="r1">r<sub>1</sub>, intrinsic growth rate of prey</label><input id="r1" type="number" step="0.01" value="0.2" />
+            <label for="a1">a<sub>1</sub>, predation rate</label><input id="a1" type="number" step="0.01" value="0.2" />
+            <label for="b1">b<sub>1</sub>, intra-prey competition coefficient</label><input id="b1" type="number" step="0.01" value="0.1" />
+            <label for="r2">r<sub>2</sub>, intrinsic growth rate of predator</label><input id="r2" type="number" step="0.01" value="0.2" />
+            <label for="a2">a<sub>2</sub>, Leslie-Gower coefficient</label><input id="a2" type="number" step="0.001" value="0.01" />
+            <div class="group">Initial conditions</div>
+            <div class="wide"><table class="ics" id="ics-generate"></table></div>
+            <div class="group">Data</div>
+            <label for="t_end">t<sub>end</sub>, end time</label><input id="t_end" type="number" step="any" min="1" value="80" />
+            <label for="nfe">Finite elements</label><input id="nfe" type="number" step="1" min="2" value="60" />
+            <label for="noise0">σ<sub>0</sub>, noise on x<sub>0</sub></label><input id="noise0" type="number" step="0.01" min="0" value="0.05" />
+            <label for="noise1">σ<sub>1</sub>, noise on x<sub>1</sub></label><input id="noise1" type="number" step="0.01" min="0" value="0.05" />
+            <label for="obs_every">Measurement at every Nth point</label><input id="obs_every" type="number" step="1" min="1" value="4" />
+            <label for="seed">Noise seed</label><input id="seed" type="number" step="1" min="0" value="0" />
+          </div>
+          <div class="tools"><button type="button" id="run-generate">Generate</button><span class="flag" id="flag-generate"></span></div>
+        </div>
+        <div class="plot"><canvas id="plot-generate" aria-label="The true trajectories and the measurements"></canvas></div>
+      </section>
+      <section class="card" id="step-train">
+        <h2>2. Training <span class="status" id="status-train"></span></h2>
+        <div>
+          <div class="options">
+            <div class="group">The network</div>
+            <label for="widths">Hidden layer widths</label><input id="widths" type="text" value="4, 4" />
+            <label for="activation">Activation</label
+            ><select id="activation">
+              <option value="softplus">softplus</option>
+              <option value="tanh">tanh</option>
+              <option value="swish">swish</option>
+            </select>
+            <label for="net_seed">Seed of the first weights</label><input id="net_seed" type="number" step="1" min="0" value="0" />
+            <div class="group">The fit</div>
+            <label for="smooth_coef">Smoother's weight on (dz/dt)<sup>2</sup></label><input id="smooth_coef" type="number" step="any" min="0" value="1" />
+            <label for="reg_coef">λ, weight on ‖θ‖<sup>2</sup></label><input id="reg_coef" type="number" step="0.001" min="0" value="0.001" />
+            <label for="epochs">Pretraining epochs</label><input id="epochs" type="number" step="1" min="0" value="200" />
+            <label for="lyapunov">Lyapunov condition, dV/dt ≤ 0</label><input id="lyapunov" type="checkbox" class="check" />
+            <label for="train_nfe">Finite elements</label><input id="train_nfe" type="number" step="1" min="2" value="40" />
+            <label for="hessian">Hessian</label
+            ><select id="hessian">
+              <option value="exact">exact</option>
+              <option value="limited-memory">L-BFGS</option>
+            </select>
+          </div>
+          <div class="tools"><button type="button" id="run-train">Train</button><span class="flag" id="flag-train"></span></div>
+          <p class="hint" id="times-train"></p>
+          <div id="metrics-train"></div>
+        </div>
+        <div class="plots">
+          <div class="plot"><canvas id="plot-train" aria-label="The trained model's states and z against the measurements and the ground truth's z"></canvas></div>
+          <div class="plot"><canvas id="plot-net" aria-label="The training NLP's objective and constraint violation by iteration, and the network's weights after pretraining and as pounce trains it"></canvas></div>
+        </div>
+        <div class="plot full"><canvas id="plot-se" aria-label="Each trained weight and bias with ±2 standard errors"></canvas></div>
+      </section>
+      <section class="card" id="step-simulate">
+        <h2>3. Inference <span class="status" id="status-simulate"></span></h2>
+        <div>
+          <div class="options">
+            <div class="group">Initial conditions</div>
+            <div class="wide"><table class="ics" id="ics-simulate"></table></div>
+            <label for="sim_t_end">t<sub>end</sub>, end time</label><input id="sim_t_end" type="number" step="any" min="1" value="80" />
+            <label for="sim_nfe">Finite elements</label><input id="sim_nfe" type="number" step="1" min="2" value="40" />
+          </div>
+          <div class="tools"><button type="button" id="run-simulate">Predict</button><span class="flag" id="flag-simulate"></span></div>
+          <p class="hint" id="times-simulate"></p>
+          <div id="metrics-simulate"></div>
+        </div>
+        <div class="plot"><canvas id="plot-simulate" aria-label="The trained model's trajectories beside the ground truth's"></canvas></div>
+      </section>
+    </main>
+    <footer>
+      <p id="note">Loading Pyodide, Pyomo and pounce.</p>
+      <p>
+        The model and the method are SiNDAE's, by the Alves research group, github.com/Alves-research-group/SiNDAE, whose sindae
+        package the page runs as it is. The page's own Python file, examples/web/leslie_gower/sindae_page.py, builds the network and
+        pretrains it in NumPy where SiNDAE uses JAX, and gives SiNDAE's functions an NLP backend that solves each model with
+        pounce's Python package for Pyodide through pyomo-pounce. The standard errors come from the KKT factorization of the training
+        solve, so they may be inaccurate with L-BFGS, whose factorization holds L-BFGS's Hessian. The inference is SiNDAE's
+        make_inference_model with the network written the same way. pounce starts it from the trained model integrated by the
+        Runge-Kutta method of order 4, and where that integration's states pass 10<sup>3</sup>, the inference ends at the last
+        finite element before that time.
+      </p>
+      <p>
+        A. D. Bazykin, Nonlinear Dynamics of Interacting Populations, World Scientific, 1998. L. R. Lueg, V. Alves, D. Schicksnus, J. R.
+        Kitchin, C. D. Laird and L. T. Biegler, A simultaneous approach for training neural differential-algebraic systems of equations,
+        arXiv:2504.04665, 2025.
+      </p>
+      <details id="licenses">
+        <summary>Licenses</summary>
+        <pre></pre>
+      </details>
+    </footer>
+
+    <script type="text/plain" id="notices-text">@notices</script>
+    <script type="text/plain" id="worker-source">@worker.js</script>
+    <script>@pyodide</script>
+    <script>@python</script>
+
+    <script type="module">
+      // @worker.js
+
+      const $ = (id) => document.getElementById(id);
+
+      // The light and dark switch.
+      const themeButton = $("theme");
+      const systemDark = () => globalThis.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false;
+      const isDark = () => {
+        const chosen = document.documentElement.dataset.theme;
+        return chosen ? chosen === "dark" : systemDark();
+      };
+      const showTheme = () => (themeButton.textContent = isDark() ? "Light" : "Dark");
+      try {
+        const saved = localStorage.getItem("theme");
+        if (saved === "dark" || saved === "light") document.documentElement.dataset.theme = saved;
+      } catch {}
+      themeButton.addEventListener("click", () => {
+        const next = isDark() ? "light" : "dark";
+        document.documentElement.dataset.theme = next;
+        try {
+          localStorage.setItem("theme", next);
+        } catch {}
+        showTheme();
+        drawAll();
+      });
+      showTheme();
+
+      $("licenses").addEventListener("toggle", () => {
+        const shown = $("licenses").querySelector("pre");
+        if ($("licenses").open && !shown.textContent) shown.textContent = $("notices-text").textContent;
+      });
+
+      // The initial conditions of steps 1 and 3, each a list of [prey, predator] rows the reader adds to and removes from.
+      const ics = { generate: [[1.0, 0.1]], simulate: [[1.0, 0.1]] };
+      const MAX_ICS = 6;
+      function showIcs(step) {
+        const table = $(`ics-${step}`);
+        table.replaceChildren();
+        const head = table.insertRow();
+        head.innerHTML = "<th></th><th>x<sub>0</sub>, prey</th><th>x<sub>1</sub>, predator</th><th></th>";
+        ics[step].forEach((row, k) => {
+          const tr = table.insertRow();
+          const swatch = tr.insertCell();
+          swatch.className = "swatch";
+          swatch.innerHTML = `<span style="background: var(--t${k})"></span>`;
+          row.forEach((value, j) => {
+            const input = document.createElement("input");
+            input.type = "number";
+            input.step = "0.01";
+            input.min = "0";
+            input.value = String(value);
+            input.setAttribute("aria-label", `${j ? "predator" : "prey"} of initial condition ${k + 1}`);
+            input.addEventListener("change", () => {
+              const v = Number(input.value);
+              if (Number.isFinite(v) && v > 0) ics[step][k][j] = v;
+              changed(step);
+            });
+            tr.insertCell().append(input);
+          });
+          const remove = document.createElement("button");
+          remove.type = "button";
+          remove.className = "x";
+          remove.textContent = "×";
+          remove.disabled = ics[step].length === 1;
+          remove.setAttribute("aria-label", `remove initial condition ${k + 1}`);
+          remove.addEventListener("click", () => {
+            ics[step].splice(k, 1);
+            showIcs(step);
+            changed(step);
+          });
+          tr.insertCell().append(remove);
+        });
+        if (ics[step].length < MAX_ICS) {
+          const tr = table.insertRow();
+          const cell = tr.insertCell();
+          cell.colSpan = 4;
+          const add = document.createElement("button");
+          add.type = "button";
+          add.textContent = "Add an initial condition";
+          add.addEventListener("click", () => {
+            const last = ics[step][ics[step].length - 1];
+            ics[step].push([Number((last[0] * 1.5).toPrecision(3)), Number((last[1] * 1.5).toPrecision(3))]);
+            showIcs(step);
+            changed(step);
+          });
+          cell.append(add);
+        }
+      }
+
+      const number = (id) => Number($(id).value);
+      const whole = (id, least) => Math.max(least, Math.round(number(id)));
+      function optionsOf(step) {
+        if (step === "generate") {
+          return {
+            params: { r1: number("r1"), a1: number("a1"), b1: number("b1"), r2: number("r2"), a2: number("a2") },
+            ics: ics.generate,
+            t_end: number("t_end"),
+            nfe: whole("nfe", 2),
+            noise: [number("noise0"), number("noise1")],
+            obs_every: whole("obs_every", 1),
+            seed: whole("seed", 0),
+          };
+        }
+        if (step === "train") {
+          const widths = $("widths")
+            .value.split(/[ ,]+/)
+            .map(Number)
+            .filter((w) => Number.isInteger(w) && w > 0);
+          return {
+            widths: widths.length ? widths : [16, 16],
+            activation: $("activation").value,
+            smooth_coef: number("smooth_coef"),
+            reg_coef: number("reg_coef"),
+            epochs: whole("epochs", 0),
+            hessian: $("hessian").value,
+            nfe: whole("train_nfe", 2),
+            seed: whole("net_seed", 0),
+            lyapunov: $("lyapunov").checked,
+          };
+        }
+        return { ics: ics.simulate, t_end: number("sim_t_end"), nfe: whole("sim_nfe", 2) };
+      }
+
+      // The steps. A step runs only on its button, so the reader sets the
+      // options first. Running a step clears the steps after it. A step's button takes the --due color, with a note
+      // beside it, where its options differ from those of its last run, or
+      // where it has no result since an earlier step ran again.
+      const STEPS = ["generate", "train", "simulate"];
+      const results = { generate: null, train: null, simulate: null };
+      const words = { generate: "Generating", train: "Training", simulate: "Predicting" };
+      let running = null;
+      let sent = null;
+      let queued = null;
+      let ready = false;
+      let requestId = 0;
+      let ticker = null;
+      const ranWith = {};
+      // Each step's note beside its button. At launch every step has the note a step gets when an earlier step runs again.
+      const cleared = { generate: "Not run yet.", train: "Not run yet.", simulate: "Not run yet." };
+      function setStatus(step, text, kind = "") {
+        $(`status-${step}`).textContent = text;
+        $(`status-${step}`).className = `status ${kind}`;
+      }
+      function showButtons() {
+        STEPS.forEach((step, k) => {
+          // While Pyodide and pounce load, Generate can be clicked, and it runs when they have loaded.
+          const runnable = running === null && (ready ? true : queued === null) && (k === 0 || results[STEPS[k - 1]] !== null);
+          const changedSince = results[step] !== null && JSON.stringify(optionsOf(step)) !== ranWith[step];
+          const note = changedSince ? "Options changed since the last run." : results[step] === null ? (cleared[step] ?? "") : "";
+          $(`run-${step}`).disabled = !runnable;
+          $(`run-${step}`).classList.toggle("due", runnable && note !== "");
+          $(`flag-${step}`).textContent = running === step ? "" : note;
+        });
+      }
+      function clearAfter(step) {
+        for (const later of STEPS.slice(STEPS.indexOf(step) + 1)) {
+          if (!results[later]) continue;
+          results[later] = null;
+          cleared[later] = `New ${step === "generate" ? "data" : "network"} since the last ${later === "train" ? "training" : "inference"}.`;
+          setStatus(later, "");
+          $(`times-${later}`).textContent = "";
+          $(`metrics-${later}`).replaceChildren();
+        }
+        drawAll();
+      }
+      function run(step) {
+        if (!ready) {
+          // A click while Pyodide and pounce load: the step runs when the load ends, and the load's status says so.
+          queued = step;
+          loadTick();
+          showButtons();
+          return;
+        }
+        if (running) {
+          queued = step;
+          return;
+        }
+        const k = STEPS.indexOf(step);
+        if (k > 0 && !results[STEPS[k - 1]]) return;
+        running = step;
+        if (step === "train") {
+          // The training plots draw the new rows as pounce writes them.
+          progress = [];
+          solveOfRow = 0;
+          results.train = null;
+          $("times-train").textContent = "";
+          $("metrics-train").replaceChildren();
+        }
+        clearAfter(step);
+        const started = performance.now();
+        const tick = () => setStatus(step, `${words[step]}: ${((performance.now() - started) / 1000).toFixed(0)} s`);
+        tick();
+        ticker = setInterval(tick, 500);
+        showButtons();
+        requestId += 1;
+        // A copy, since the initial-condition tables keep changing the arrays optionsOf gives.
+        sent = JSON.parse(JSON.stringify(optionsOf(step)));
+        solves.postMessage({ id: requestId, kind: step, options: sent });
+      }
+      // A change of an option only marks its step's button.
+      const changed = () => showButtons();
+      for (const step of STEPS) $(`run-${step}`).addEventListener("click", () => run(step));
+      for (const [step, ids] of Object.entries({
+        generate: ["r1", "a1", "b1", "r2", "a2", "t_end", "nfe", "noise0", "noise1", "obs_every", "seed"],
+        train: ["widths", "activation", "net_seed", "smooth_coef", "reg_coef", "epochs", "lyapunov", "train_nfe", "hessian"],
+        simulate: ["sim_t_end", "sim_nfe"],
+      })) {
+        for (const id of ids) for (const kind of ["input", "change"]) $(id).addEventListener(kind, changed);
+      }
+
+      const seconds = (s) => `${s.toFixed(s < 10 ? 2 : 1)} s`;
+      const megabytes = (bytes) => `${(bytes / 1e6).toFixed(1)} MB`;
+      // A row of pounce's iteration log while training runs, drawn at the next frame.
+      let frame = null;
+      let solveOfRow = 0;
+      function onProgress(row) {
+        if (running !== "train") return;
+        if (row.resolve) {
+          solveOfRow += 1;
+          return;
+        }
+        progress.push({ ...row, solve: solveOfRow, count: progress.length });
+        frame ??= requestAnimationFrame(() => {
+          frame = null;
+          drawAll();
+        });
+      }
+      function onReply(event) {
+        const reply = event.data;
+        if (reply.progress) {
+          onProgress(reply.progress);
+          return;
+        }
+        if (reply.id === 0) {
+          if (!reply.ok) {
+            clearInterval(ticker);
+            setStatus("generate", `The page could not start: ${reply.message}`, "bad");
+            $("note").textContent = `The page could not start: ${reply.message}`;
+            return;
+          }
+          const where = solves.inPage ? "They run in this page." : "They run in a worker.";
+          $("note").textContent = `Pyodide ${reply.pyodide}, NumPy, Pyomo ${reply.pyomo}, pounce's Python package of ${megabytes(reply.bytes)} and pyomo-pounce loaded in ${seconds(reply.loadMs / 1000)}. ${where}`;
+          ready = true;
+          clearInterval(ticker);
+          setStatus("generate", "");
+          showButtons();
+          drawAll();
+          if (queued) {
+            const next = queued;
+            queued = null;
+            run(next);
+          }
+          return;
+        }
+        const step = running;
+        clearInterval(ticker);
+        running = null;
+        const answer = reply.ok ? reply.answer : { ok: false, message: reply.message };
+        if (answer.ok) {
+          // The data step's result keeps the initial conditions it was solved from, for its key.
+          if (step === "generate") answer.ics = sent.ics.map((row) => [...row]);
+          if (step === "train") answer.progress = progress;
+          results[step] = answer;
+          ranWith[step] = JSON.stringify(sent);
+          cleared[step] = null;
+          showResult(step, answer, reply.ms);
+        } else {
+          results[step] = null;
+          setStatus(step, answer.message, "bad");
+        }
+        showButtons();
+        drawAll();
+        const next = queued;
+        queued = null;
+        if (next) run(next);
+      }
+
+      // The rows x0, x1 and z0 of a fit's RMSE and R².
+      const fitRows = (fit) => [
+        ["x<sub>0</sub>, prey", number3(fit.prey.rmse), r2Text(fit.prey.r2)],
+        ["x<sub>1</sub>, predator", number3(fit.predator.rmse), r2Text(fit.predator.r2)],
+        ["ẑ<sub>0</sub>", number3(fit.z.rmse), r2Text(fit.z.r2)],
+      ];
+      // A number to three significant figures, or no text for none.
+      const number3 = (v) => (v === null || v === undefined ? "" : Number(v.toPrecision(3)).toString());
+      // R² to three places, so 0.9996 reads 1.000 and not 1.
+      const r2Text = (v) => (v === null || v === undefined ? "" : v.toFixed(3));
+      // A titled table in `box`: header rows and rows whose cells are HTML or {html, span}, the last row a total where `total` is set.
+      function addTable(box, title, head, rows, { total = false } = {}) {
+        const heading = document.createElement("p");
+        heading.className = "metrics-title";
+        heading.textContent = title;
+        const table = document.createElement("table");
+        table.className = "metrics";
+        for (const cells of head) {
+          const tr = table.insertRow();
+          for (const cell of cells) {
+            const th = document.createElement("th");
+            th.innerHTML = cell.html ?? cell;
+            if (cell.span) {
+              th.colSpan = cell.span;
+              th.className = "group";
+            }
+            tr.append(th);
+          }
+        }
+        rows.forEach((row, k) => {
+          const tr = table.insertRow();
+          if (total && k === rows.length - 1) tr.className = "total";
+          for (const cell of row) {
+            const td = tr.insertCell();
+            td.innerHTML = cell.html ?? cell;
+            if (cell.span) {
+              td.colSpan = cell.span;
+              td.style.textAlign = "center";
+            }
+          }
+        });
+        box.append(heading, table);
+      }
+      function showResult(step, answer, ms) {
+        const total = seconds(ms / 1000);
+        if (step === "generate") {
+          const points = answer.trajectories.reduce((n, t) => n + t.obs_t.length, 0);
+          setStatus(step, `Done in ${total}: ${points} measurements of each state.`, "good");
+        } else if (step === "train") {
+          const t = answer.times;
+          const counts = [...new Set(progress.map((p) => p.solve))].map((k) => Math.max(...progress.filter((p) => p.solve === k).map((p) => p.iter)));
+          const iterations = counts.length > 1 ? `${counts[0]} iterations, then ${counts.slice(1).join(" and ")} after scaling up the small objective` : `${t.training.iterations} iterations`;
+          setStatus(step, `Done in ${total}: pounce ended the training ${t.training.status} after ${iterations}.`, "good");
+          $("times-train").textContent =
+            `Smoother ${seconds(t.smoother_ms / 1000)}, pretraining ${seconds(t.pretrain_ms / 1000)}, building the NLP ${seconds(t.build_ms / 1000)}, pounce ${seconds(t.training.solve)}` +
+            `, and the standard errors ${seconds(t.uncertainty_ms / 1000)}.` +
+            (sent.hessian === "exact" ? "" : " The uncertainty calculations may be inaccurate with L-BFGS, since pounce's KKT factorization then holds L-BFGS's Hessian and not the exact one.");
+          const m = answer.metrics;
+          $("metrics-train").replaceChildren();
+          addTable($("metrics-train"), "The fit", [["", "RMSE", "R²"]], fitRows(m.fit));
+          addTable(
+            $("metrics-train"),
+            "The objective",
+            [],
+            [
+              ["Data fit", number3(m.data_fit)],
+              ["λ‖θ‖<sup>2</sup>", number3(m.penalty)],
+              ["Total", number3(m.objective)],
+            ],
+            { total: true },
+          );
+        } else {
+          // One sentence for pounce's solves, and a sentence for each of these only when it applies: the failed solves, the initial
+          // conditions whose trained model leaves the states of its training data, and those whose states pass 10³.
+          const rows = answer.rows.map((r, k) => ({ ...r, k: k + 1 }));
+          const list = (xs) => (xs.length === 1 ? `${xs[0]}` : `${xs.slice(0, -1).join(", ")} and ${xs.at(-1)}`);
+          const conditions = (rs) => `initial condition${rs.length === 1 ? "" : "s"} ${list(rs.map((r) => r.k))}`;
+          const solved = rows.filter((r) => r.hybrid);
+          const failed = rows.filter((r) => !r.hybrid);
+          const parts = [];
+          if (solved.length > 0) {
+            const its = solved.map((r) => r.timing.iterations);
+            const low = Math.min(...its);
+            const high = Math.max(...its);
+            const iterations = low === high ? `${low} iteration${low === 1 ? "" : "s"}` : `${low} to ${high} iterations`;
+            const time = seconds(solved.reduce((s, r) => s + r.timing.solve, 0));
+            parts.push(
+              solved.length === 1
+                ? `pounce solved ${conditions(solved)} in ${iterations} and ${time}.`
+                : `pounce solved ${conditions(solved)} in ${iterations}${low === high ? " each" : ""}, ${time} in total.`,
+            );
+          }
+          if (failed.length > 0) parts.push(`pounce ended ${list(failed.map((r) => `initial condition ${r.k} ${r.timing.status}`))}.`);
+          const outside = rows.filter((r) => r.outside !== null);
+          if (outside.length > 0) parts.push(`The trained model leaves the states of its training data from ${conditions(outside)}.`);
+          const passing = rows.filter((r) => r.leaves !== null);
+          if (passing.length > 0) {
+            parts.push(
+              `From ${conditions(passing)} the states pass 10³, so the inference ends at ${list(passing.map((r) => `t = ${r.t_end.toFixed(1)}`))}.`,
+            );
+          }
+          setStatus(step, `Done in ${total}.`, failed.length > 0 ? "bad" : "good");
+          $("metrics-simulate").replaceChildren();
+          if (answer.metrics) {
+            const inside = ["prey", "predator", "z"].map((name) => `${(100 * answer.metrics[name].inside).toFixed(0)}%`);
+            addTable($("metrics-simulate"), "Against the ground truth", [["", "RMSE", "R²", "Within ±2 SD"]], fitRows(answer.metrics).map((row, k) => [...row, inside[k]]));
+          }
+
+          $("times-simulate").textContent = parts.join(" ");
+        }
+      }
+
+      // Drawing. Each step's plot is panels side by side, or one over the
+      // other on a narrow screen, with the key under them. Each initial
+      // condition has one color through the page.
+      let style = getComputedStyle(document.documentElement);
+      const css = (name) => style.getPropertyValue(name).trim();
+      const small = "12px system-ui, sans-serif";
+      const label = "13px system-ui, sans-serif";
+      function text(ctx, line, x, y, { color = css("--ink"), align = "left", base = "alphabetic", font = small } = {}) {
+        ctx.fillStyle = color;
+        ctx.textAlign = align;
+        ctx.textBaseline = base;
+        ctx.font = font;
+        ctx.fillText(line, x, y);
+        return ctx.measureText(line).width;
+      }
+      // `words` with each run after an underscore as a subscript, as x_0. Gives back the width.
+      function subscripted(ctx, words, x, y, color, draw, align = "left", font = label) {
+        const parts = words.split(/_(\w+)/);
+        const widthOf = (part, sub) => {
+          ctx.font = sub ? "10px system-ui, sans-serif" : font;
+          return ctx.measureText(part).width;
+        };
+        const width = parts.reduce((s, part, k) => s + widthOf(part, k % 2 === 1), 0);
+        if (!draw) return width;
+        let at = align === "right" ? x - width : align === "center" ? x - width / 2 : x;
+        parts.forEach((part, k) => {
+          const w = widthOf(part, k % 2 === 1);
+          text(ctx, part, at, y + (k % 2 ? 3 : 0), { color, font: ctx.font });
+          at += w;
+        });
+        return width;
+      }
+      function line(ctx, points, color, width = 2, dash = []) {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = width;
+        ctx.setLineDash(dash);
+        ctx.beginPath();
+        points.forEach(([x, y], k) => (k ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      function dot(ctx, x, y, color, radius = 2.5) {
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, 2 * Math.PI);
+        ctx.fillStyle = color;
+        ctx.fill();
+      }
+      // A round step giving about `count` ticks over [lo, hi].
+      function ticksOf(lo, hi, count) {
+        const raw = (hi - lo) / count || 1;
+        const power = 10 ** Math.floor(Math.log10(raw));
+        const step = [1, 2, 2.5, 5, 10].map((m) => m * power).find((s) => s >= raw);
+        const out = [];
+        for (let v = Math.ceil(lo / step) * step; v <= hi + step * 1e-9; v += step) out.push(Number(v.toPrecision(12)));
+        return { out, places: Math.max(0, -Math.floor(Math.log10(step) + 1e-9)) };
+      }
+      // The whole powers of ten from 10^lo to 10^hi, every second one where there are more than six.
+      function powersIn(lo, hi) {
+        const out = [];
+        for (let k = Math.ceil(lo); k <= Math.floor(hi); k++) out.push(k);
+        return out.length > 6 ? out.filter((k) => k % 2 === 0) : out;
+      }
+      const powerText = (k) => `10${String(k).replace("-", "⁻").replace(/\d/g, (d) => "⁰¹²³⁴⁵⁶⁷⁸⁹"[d])}`;
+      // A panel in (px, py, pw, ph) with its title, its axes over the data's range and its series, each {points, color, kind}.
+      function panel(ctx, px, py, pw, ph, title, xTitle, series, { logY = false, marks = [] } = {}) {
+        const muted = css("--muted");
+        // On a log axis the points are drawn at log10 of their y, and the ticks are the whole powers of ten.
+        if (logY) series = series.map((s) => ({ ...s, points: s.points.filter((p) => p[1] > 0).map(([x, y]) => [x, Math.log10(y)]) }));
+        const all = series.flatMap((s) => s.points);
+        if (!all.length) return;
+        const xs = all.map((p) => p[0]);
+        // The y axis spans the lines and dots, and a band widens it by half that span at most on each side, so a wide band does not flatten the lines.
+        const ys = series.filter((s) => s.kind !== "band").flatMap((s) => s.points.map((p) => p[1])).filter(Number.isFinite);
+        let [y0, y1] = [Math.min(...ys), Math.max(...ys)];
+        if (y1 - y0 < 1e-9) [y0, y1] = [y0 - 1, y1 + 1];
+        const bands = series.filter((s) => s.kind === "band").flatMap((s) => s.points.map((p) => p[1])).filter(Number.isFinite);
+        if (bands.length) {
+          const span = y1 - y0;
+          [y0, y1] = [Math.max(Math.min(y0, ...bands), y0 - span / 2), Math.min(Math.max(y1, ...bands), y1 + span / 2)];
+        }
+        const pad = 0.05 * (y1 - y0);
+        [y0, y1] = [y0 - pad, y1 + pad];
+        const [x0, x1] = [Math.min(...xs), Math.max(...xs)];
+        const [left, right, top, bottom] = [px + 46, px + pw - 8, py + 22, py + ph - 34];
+        const X = (v) => left + ((v - x0) / (x1 - x0 || 1)) * (right - left);
+        const Y = (v) => bottom - ((v - y0) / (y1 - y0)) * (bottom - top);
+        subscripted(ctx, title, px + 4, py + 14, css("--ink"), true, "left", "600 13px system-ui, sans-serif");
+        const yt = logY ? { out: powersIn(y0, y1), places: 0 } : ticksOf(y0, y1, 4);
+        for (const v of yt.out) {
+          line(ctx, [[left, Y(v)], [right, Y(v)]], css("--line"), 1, [2, 4]);
+          text(ctx, logY ? powerText(v) : v.toFixed(yt.places), left - 6, Y(v), { align: "right", base: "middle", color: muted });
+        }
+        const xt = ticksOf(x0, x1, pw < 330 ? 3 : 5);
+        for (const v of xt.out) {
+          line(ctx, [[X(v), top], [X(v), bottom]], css("--line"), 1, [2, 4]);
+          text(ctx, v.toFixed(xt.places), X(v), bottom + 15, { align: "center", color: muted });
+        }
+        line(ctx, [[left, bottom], [right, bottom], [right, bottom]], muted, 1);
+        line(ctx, [[left, top], [left, bottom]], muted, 1);
+        subscripted(ctx, xTitle, right, bottom + 30, muted, true, "right");
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(left, top - 4, right - left, bottom - top + 8);
+        ctx.clip();
+        for (const x of marks) line(ctx, [[X(x), top], [X(x), bottom]], css("--ink"), 1.2, [1, 3]);
+        for (const s of series) {
+          const pts = s.points.filter((p) => Number.isFinite(p[1])).map(([x, y]) => [X(x), Y(y)]);
+          if (s.kind === "band") {
+            ctx.globalAlpha = 0.18;
+            ctx.fillStyle = s.color;
+            ctx.beginPath();
+            pts.forEach(([x, y], k) => (k ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+            ctx.closePath();
+            ctx.fill();
+            ctx.globalAlpha = 1;
+          } else if (s.kind === "dots") pts.forEach(([x, y]) => dot(ctx, x, y, s.color));
+          else line(ctx, pts, s.color, 2, s.kind === "dash" ? [6, 4] : s.kind === "dashdot" ? DASHDOT : []);
+        }
+        ctx.restore();
+      }
+      // The key under the panels: a mark and its words for each entry, in rows that fit the width.
+      function key(ctx, x, y, w, entries, draw) {
+        let [kx, row] = [0, 0];
+        for (const [color, words, kind] of entries) {
+          const width = 30 + subscripted(ctx, words, 0, 0, null, false, "left", small);
+          if (kx > 0 && kx + width > w) [kx, row] = [0, row + 1];
+          if (draw) {
+            const [ex, ey] = [x + kx, y + 18 * row];
+            if (kind === "dots") dot(ctx, ex + 11, ey - 4, color, 3);
+            else if (kind === "swatch") dot(ctx, ex + 11, ey - 4, color, 5);
+            else if (kind === "ring") {
+              ctx.beginPath();
+              ctx.arc(ex + 11, ey - 4, 3, 0, 2 * Math.PI);
+              ctx.strokeStyle = color;
+              ctx.lineWidth = 1.2;
+              ctx.stroke();
+            } else if (kind === "band") {
+              ctx.globalAlpha = 0.25;
+              ctx.fillStyle = color;
+              ctx.fillRect(ex, ey - 9, 22, 10);
+              ctx.globalAlpha = 1;
+            } else if (kind === "faint") {
+              ctx.globalAlpha = 0.35;
+              line(ctx, [[ex, ey - 4], [ex + 22, ey - 4]], color, 1, [1, 2]);
+              ctx.globalAlpha = 1;
+            }
+            else line(ctx, [[ex, ey - 4], [ex + 22, ey - 4]], color, kind === "dots-line" ? 1.2 : 2, kind === "dash" ? [6, 4] : kind === "dashdot" ? DASHDOT : kind === "dots-line" ? [1, 3] : []);
+            subscripted(ctx, words, ex + 28, ey, css("--muted"), true, "left", small);
+          }
+          kx += width + 14;
+        }
+        return row + 1;
+      }
+      const colorOf = (k) => css(`--t${k % 6}`);
+      // The trained model's line, dash-dot as SiNDAE's plot_instance_data draws it.
+      const DASHDOT = [8, 3, 2, 3];
+      // The ground truth's color: black where there is one trajectory, as SiNDAE's plots draw it, and each initial condition's own otherwise.
+      const truthColor = (k, n) => (n === 1 ? css("--ink") : colorOf(k));
+      const measuredDots = (rows, name) => rows.map((t) => ({ points: t.obs_t.map((v, i) => [v, t[`obs_${name}`][i]]), color: css("--meas"), kind: "dots" }));
+      const series = (rows, name, kind, xName = "t") => rows.map((r, k) => ({ points: r[xName].map((t, i) => [t, r[name][i]]), color: colorOf(k), kind }));
+      // The band of ±2 standard deviations about each row's `name`, from the row's sd, in each row's color.
+      const bandsOf = (rows, name, color = colorOf) =>
+        rows
+          .filter((r) => r?.sd)
+          .map((r, k) => ({
+            points: [...r.t.map((t, i) => [t, r[name][i] + 2 * r.sd[name][i]]), ...r.t.map((t, i) => [t, r[name][i] - 2 * r.sd[name][i]]).reverse()],
+            color: color(k),
+            kind: "band",
+          }));
+      // Panels laid out in the canvas with the key under them.
+      function layout(ctx, w, h, panels, entries) {
+        const rows = key(ctx, 0, 0, w - 8, entries, false);
+        const keyH = 18 * rows + 6;
+        const narrow = w < 700;
+        const n = panels.length;
+        panels.forEach(([title, xTitle, data], k) => {
+          if (narrow) panel(ctx, 0, ((h - keyH) / n) * k, w, (h - keyH) / n, title, xTitle, data);
+          else panel(ctx, (w / n) * k, 0, w / n, h - keyH, title, xTitle, data);
+        });
+        key(ctx, 8, h - keyH + 14, w - 8, entries, true);
+      }
+      const icWords = (ic, k) => `${k + 1}: x_0 = ${ic[0]}, x_1 = ${ic[1]}`;
+
+      function drawGenerate(ctx, w, h) {
+        const r = results.generate;
+        if (!r) return;
+        const rows = r.trajectories;
+        const truth = (name) => rows.map((t, k) => ({ points: t.t.map((v, i) => [v, t[name][i]]), color: truthColor(k, rows.length), kind: "line" }));
+        layout(
+          ctx,
+          w,
+          h,
+          [
+            ["x_0, prey", "t", [...truth("prey"), ...measuredDots(rows, "prey")]],
+            ["x_1, predator", "t", [...truth("predator"), ...measuredDots(rows, "predator")]],
+          ],
+          [
+            ...(rows.length > 1 ? r.ics.map((ic, k) => [colorOf(k), icWords(ic, k), "swatch"]) : []),
+            [css("--ink"), rows.length > 1 ? "ground truth" : `ground truth from x_0 = ${r.ics[0][0]}, x_1 = ${r.ics[0][1]}`, "line"],
+            [css("--meas"), "measurement", "dots"],
+          ],
+        );
+      }
+      function drawTrain(ctx, w, h) {
+        const r = results.train;
+        const data = results.generate;
+        if (!r || !data) return;
+        const rows = r.trajectories;
+        const n = rows.length;
+        const trained = (name) => rows.map((t, k) => ({ points: t.t.map((v, i) => [v, t[name][i]]), color: colorOf(k), kind: "dashdot" }));
+        const truthZ = rows.map((t, k) => ({ points: t.t.map((v, i) => [v, t.true_z[i]]), color: truthColor(k, n), kind: "line" }));
+        layout(
+          ctx,
+          w,
+          h,
+          [
+            ["x_0, prey", "t", [...bandsOf(rows, "prey"), ...measuredDots(data.trajectories, "prey"), ...trained("prey")]],
+            ["x_1, predator", "t", [...bandsOf(rows, "predator"), ...measuredDots(data.trajectories, "predator"), ...trained("predator")]],
+            ["z_0, predator growth term", "t", [...bandsOf(rows, "z"), ...truthZ, ...trained("z")]],
+          ],
+          [
+            ...data.ics.map((ic, k) => [colorOf(k), icWords(ic, k), "swatch"]),
+            [css("--ink"), "trained model", "dashdot"],
+            [css("--muted"), "±2 standard deviations", "band"],
+            [css("--meas"), "measurement", "dots"],
+            [css("--ink"), "ground truth z_0 at the trained states", "line"],
+          ],
+        );
+      }
+      function drawSimulate(ctx, w, h) {
+        const r = results.simulate;
+        if (!r) return;
+        const n = r.rows.length;
+        const lines = (name, part, kind, color) =>
+          r.rows.map((x, k) => {
+            const row = x[part] ?? { t: [], prey: [], predator: [], z: [] };
+            return { points: row.t.map((t, i) => [t, row[name][i]]), color: color(k), kind };
+          });
+        const hybrids = r.rows.map((x) => x.hybrid ?? null);
+        const bandOf = (name) => hybrids.flatMap((h, k) => (h ? bandsOf([h], name, () => colorOf(k)) : []));
+        const panelOf = (name) => [...bandOf(name), ...lines(name, "truth", "line", (k) => truthColor(k, n)), ...lines(name, "hybrid", "dashdot", colorOf)];
+        layout(
+          ctx,
+          w,
+          h,
+          [
+            ["x_0, prey", "t", panelOf("prey")],
+            ["x_1, predator", "t", panelOf("predator")],
+            ["z_0, predator growth term", "t", panelOf("z")],
+          ],
+          [
+            ...r.rows.map((x, k) => [colorOf(k), icWords(x.ic, k), "swatch"]),
+            [css("--ink"), "trained model", "dashdot"],
+            [css("--muted"), "±2 standard deviations", "band"],
+            [css("--ink"), "ground truth", "line"],
+          ],
+        );
+      }
+      // The training NLP's objective and constraint violation by pounce's
+      // iteration, drawn as pounce solves, and the network after pretraining
+      // and at pounce's latest iteration, which after training is the
+      // trained network. Each connection's width is set by |weight| on one
+      // scale for both networks, solid where the weight is positive and
+      // dashed where it is negative. After training, a weight within 2
+      // standard errors of 0 is drawn faint. The biases are not drawn.
+      let progress = [];
+      function drawNetwork(ctx, px, py, pw, ph, weights, title, largest, se = null) {
+        const muted = css("--muted");
+        const ink = css("--ink");
+        subscripted(ctx, title, px + 4, py + 14, ink, true, "left", "600 13px system-ui, sans-serif");
+        const sizes = [weights[0][0][0].length, ...weights.map(([w]) => w.length)];
+        const [left, right, top, bottom] = [px + 40, px + pw - 40, py + 30, py + ph - 10];
+        const X = (layer) => left + (layer / (sizes.length - 1)) * (right - left);
+        const Y = (layer, k) => {
+          const gap = Math.min(16, (bottom - top) / sizes[layer]);
+          return (top + bottom) / 2 + (k - (sizes[layer] - 1) / 2) * gap;
+        };
+        weights.forEach(([w], layer) => {
+          w.forEach((row, i) =>
+            row.forEach((value, j) => {
+              const ends = [[X(layer), Y(layer, j)], [X(layer + 1), Y(layer + 1, i)]];
+              if (se && Math.abs(value) <= 2 * se[layer][0][i][j]) {
+                ctx.globalAlpha = 0.35;
+                line(ctx, ends, muted, 1, [1, 2]);
+                return;
+              }
+              const share = Math.min(1, Math.abs(value) / largest);
+              ctx.globalAlpha = 0.2 + 0.8 * share;
+              line(ctx, ends, value >= 0 ? ink : muted, 0.3 + 2.7 * share, value >= 0 ? [] : [3, 2]);
+            }),
+          );
+        });
+        ctx.globalAlpha = 1;
+        sizes.forEach((n, layer) => {
+          for (let k = 0; k < n; k++) {
+            ctx.beginPath();
+            ctx.arc(X(layer), Y(layer, k), 3.5, 0, 2 * Math.PI);
+            ctx.fillStyle = css("--panel");
+            ctx.fill();
+            ctx.strokeStyle = ink;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+          }
+        });
+        ["x_0", "x_1"].forEach((name, k) => subscripted(ctx, name, X(0) - 8, Y(0, k) + 4, ink, true, "right"));
+        subscripted(ctx, "ẑ_0", X(sizes.length - 1) + 8, Y(sizes.length - 1, 0) + 4, ink, true, "left");
+      }
+      function drawNet(ctx, w, h) {
+        const r = results.train;
+        const rows = r?.progress ?? progress;
+        const narrow = w < 700;
+        const [lw, nw] = narrow ? [w, w] : [w * 0.4, w * 0.3];
+        const sh = narrow ? h / 3 : h;
+        // The loss panel with its key under it.
+        const lossKey = [
+          [css("--ink"), "objective", "line"],
+          [css("--muted"), "constraint violation, inf_pr", "dash"],
+        ];
+        if (rows.some((p) => p.solve > 0)) lossKey.push([css("--ink"), "pounce solves again from its answer", "dots-line"]);
+        const keyH = 18 * key(ctx, 0, 0, lw - 16, lossKey, false) + 6;
+        if (rows.length) {
+          // One line for each of pounce's solves, the second its scale audit's solve from the first's answer.
+          const solves = [...new Set(rows.map((p) => p.solve))];
+          const series = solves.flatMap((k) => {
+            const part = rows.filter((p) => p.solve === k);
+            return [
+              { points: part.map((p) => [p.count, p.objective]), color: css("--ink"), kind: "line" },
+              { points: part.map((p) => [p.count, p.inf_pr]), color: css("--muted"), kind: "dash" },
+            ];
+          });
+          const starts = solves.slice(1).map((k) => rows.find((p) => p.solve === k).count);
+          panel(ctx, 0, 0, lw - 8, sh - keyH, "Training NLP by iteration", "pounce's iterations, both solves", series, { logY: true, marks: starts });
+          key(ctx, 8, sh - keyH + 14, lw - 16, lossKey, true);
+        }
+        // The two networks with one key under both.
+        const netKey = [
+          [css("--ink"), "positive weight", "line"],
+          [css("--muted"), "negative weight, line width set by |weight|", "dash"],
+        ];
+        if (r?.weights?.se) netKey.push([css("--muted"), "within 2 standard errors of 0", "faint"]);
+        const netW = narrow ? w : 2 * nw;
+        const netKeyH = 18 * key(ctx, 0, 0, netW - 16, netKey, false) + 6;
+        // While pounce solves, the networks come from the training's rows: the first row's weights are the pretrained ones.
+        const withWeights = rows.filter((p) => p.weights);
+        const first = r?.weights?.pretrained ?? withWeights[0]?.weights;
+        const now = r?.weights?.trained ?? withWeights[withWeights.length - 1]?.weights;
+        if (first && now) {
+          const nowTitle = r ? "Network after training" : `Network at pounce's iteration ${withWeights[withWeights.length - 1].iter}`;
+          const all = [first, now].flatMap((ws) => ws.flatMap(([m]) => m.flat().map(Math.abs)));
+          const largest = Math.max(...all) || 1;
+          const se = r?.weights?.se ?? null;
+          if (narrow) {
+            drawNetwork(ctx, 0, sh, w, sh, first, "Network after pretraining", largest);
+            drawNetwork(ctx, 0, 2 * sh, w, sh - netKeyH, now, nowTitle, largest, se);
+          } else {
+            drawNetwork(ctx, lw, 0, nw, h - netKeyH, first, "Network after pretraining", largest);
+            drawNetwork(ctx, lw + nw, 0, nw, h - netKeyH, now, nowTitle, largest, se);
+          }
+          key(ctx, (narrow ? 0 : lw) + 8, h - netKeyH + 14, netW - 16, netKey, true);
+        }
+      }
+      // Each trained weight and bias with ±2 standard errors, layer by layer,
+      // each layer's weights row by row and then its biases. A parameter
+      // whose bar reaches 0 is drawn in the muted color.
+      function drawSE(ctx, w, h) {
+        const r = results.train;
+        if (!r?.weights?.se) return;
+        const ink = css("--ink");
+        const muted = css("--muted");
+        const layers = r.weights.trained.length;
+        const nameOf = (li) => (li === 0 ? "x to hidden layer 1" : li === layers - 1 ? `hidden layer ${li} to ẑ₀` : `hidden layer ${li} to ${li + 1}`);
+        const points = [];
+        r.weights.trained.forEach(([wm, b], li) => {
+          const [sw, sb] = r.weights.se[li];
+          wm.forEach((row, i) => row.forEach((v, j) => points.push({ v, se: sw[i][j], li, bias: false })));
+          b.forEach((v, i) => points.push({ v, se: sb[i], li, bias: true }));
+        });
+        const entries = [
+          [ink, "weight", "dots"],
+          [ink, "bias", "swatch"],
+          [muted, "bar reaches 0", "dots"],
+        ];
+        const keyH = 18 * key(ctx, 0, 0, w - 16, entries, false) + 6;
+        const [left, right, top, bottom] = [52, w - 10, 26, h - keyH - 36];
+        subscripted(ctx, "Trained weights and biases with ±2 standard errors", 4, 14, ink, true, "left", "600 13px system-ui, sans-serif");
+        let [y0, y1] = [Math.min(0, ...points.map((p) => p.v - 2 * p.se)), Math.max(0, ...points.map((p) => p.v + 2 * p.se))];
+        const pad = 0.05 * (y1 - y0 || 1);
+        [y0, y1] = [y0 - pad, y1 + pad];
+        const Y = (v) => bottom - ((v - y0) / (y1 - y0)) * (bottom - top);
+        // A gap of two places between layers.
+        const slots = points.length + 2 * (layers - 1);
+        const X = (k, li) => left + ((k + 2 * li + 0.5) / slots) * (right - left);
+        const yt = ticksOf(y0, y1, 4);
+        for (const v of yt.out) {
+          line(ctx, [[left, Y(v)], [right, Y(v)]], css("--line"), 1, [2, 4]);
+          text(ctx, v.toFixed(yt.places), left - 6, Y(v), { align: "right", base: "middle", color: muted });
+        }
+        line(ctx, [[left, Y(0)], [right, Y(0)]], muted, 1);
+        line(ctx, [[left, top], [left, bottom]], muted, 1);
+        const radius = Math.max(1.5, Math.min(3.5, (0.35 * (right - left)) / slots));
+        points.forEach((p, k) => {
+          const x = X(k, p.li);
+          const color = Math.abs(p.v) <= 2 * p.se ? muted : ink;
+          line(ctx, [[x, Y(p.v - 2 * p.se)], [x, Y(p.v + 2 * p.se)]], color, 1);
+          if (p.bias) {
+            ctx.beginPath();
+            ctx.arc(x, Y(p.v), radius, 0, 2 * Math.PI);
+            ctx.fillStyle = css("--panel");
+            ctx.fill();
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1.2;
+            ctx.stroke();
+          } else dot(ctx, x, Y(p.v), color, radius);
+        });
+        // Each layer's name under its points.
+        for (let li = 0; li < layers; li++) {
+          const ks = points.map((p, k) => (p.li === li ? k : -1)).filter((k) => k >= 0);
+          const [a, b] = [X(ks[0], li), X(ks[ks.length - 1], li)];
+          line(ctx, [[a, bottom + 6], [b, bottom + 6]], muted, 1);
+          text(ctx, nameOf(li), (a + b) / 2, bottom + 22, { align: "center", color: muted });
+        }
+        key(ctx, 8, h - keyH + 14, w - 16, entries.map(([c, wds, kind]) => [c, wds, kind === "swatch" ? "ring" : kind]), true);
+      }
+      // Each canvas, its step, and what draws it. The network canvas also draws while training runs.
+      const charts = [
+        ["plot-generate", "generate", drawGenerate],
+        ["plot-train", "train", drawTrain],
+        ["plot-net", "train", drawNet],
+        ["plot-se", "train", drawSE],
+        ["plot-simulate", "simulate", drawSimulate],
+      ];
+      function drawAll() {
+        style = getComputedStyle(document.documentElement);
+        const told = new Set();
+        for (const [id, step, drawChart] of charts) {
+          const canvas = $(id);
+          const rect = canvas.getBoundingClientRect();
+          const ratio = globalThis.devicePixelRatio || 1;
+          canvas.width = Math.round(rect.width * ratio);
+          canvas.height = Math.round(rect.height * ratio);
+          const ctx = canvas.getContext("2d");
+          ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+          ctx.fillStyle = css("--panel");
+          ctx.fillRect(0, 0, rect.width, rect.height);
+          const live = id === "plot-net" && running === "train";
+          if (rect.width > 0 && (results[step] || live)) drawChart(ctx, rect.width, rect.height);
+          else if (rect.width > 0 && ready && running !== step && !told.has(step)) {
+            told.add(step);
+            const button = $(`run-${step}`).textContent;
+            text(ctx, `${button} draws this step's plots.`, rect.width / 2, rect.height / 2, { align: "center", color: css("--muted"), font: label });
+          }
+        }
+      }
+      const resized = new ResizeObserver(() => drawAll());
+      for (const [id] of charts) resized.observe($(id));
+      globalThis.matchMedia?.("(prefers-color-scheme: dark)").addEventListener("change", () => {
+        showTheme();
+        drawAll();
+      });
+
+      // The worker, made from a data URL with worker.js, or the page itself where the address has ?inpage or the browser refuses the worker.
+      function startSolves() {
+        const solves = { inPage: false, loaded: false, worker: null, postMessage: (m) => solves.worker.postMessage(m) };
+        const load = { id: 0, kind: "load", pyodide: globalThis.pyodideFiles, python: globalThis.pythonFiles };
+        const inPage = () => {
+          solves.inPage = true;
+          if (solves.worker) solves.worker.terminate();
+          const port = { postMessage: (reply) => setTimeout(() => onReply({ data: reply }), 0) };
+          serve(port);
+          solves.worker = { postMessage: (message) => setTimeout(() => port.onmessage({ data: message }), 0), terminate() {} };
+          solves.worker.postMessage(load);
+        };
+        if (typeof Worker === "undefined" || new URLSearchParams(location.search).has("inpage")) {
+          inPage();
+          return solves;
+        }
+        const code = `${$("worker-source").textContent.replace(/^export /gm, "")}\nserve(self);\n`;
+        try {
+          const worker = new Worker(`data:text/javascript;charset=utf-8,${encodeURIComponent(code)}`, { type: "module" });
+          worker.onmessage = (event) => {
+            if (event.data.id === 0 && event.data.ok) solves.loaded = true;
+            onReply(event);
+          };
+          worker.onerror = (event) => {
+            event.preventDefault();
+            if (!solves.loaded && !solves.inPage) inPage();
+            else $("note").textContent = `The worker stopped: ${event.message ?? "no message"}`;
+          };
+          worker.postMessage(load);
+          solves.worker = worker;
+        } catch {
+          inPage();
+        }
+        return solves;
+      }
+
+      showIcs("generate");
+      showIcs("simulate");
+      showButtons();
+      // The load starts when the page opens, and its status shows in Generate's header, counted from then, until it ends.
+      const opened = performance.now();
+      const loadTick = () =>
+        setStatus("generate", `Loading Pyodide, NumPy, Pyomo and pounce: ${((performance.now() - opened) / 1000).toFixed(0)} s${queued ? ". Generate runs when they have loaded." : ""}`);
+      loadTick();
+      ticker = setInterval(loadTick, 500);
+      const solves = startSolves();
+    </script>
+  </body>
+</html>

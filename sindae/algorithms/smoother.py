@@ -22,13 +22,14 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
 
 import pyomo.environ as pyo
 import pyomo.dae as dae
 from pyomo.common.timing import HierarchicalTimer
 
-from sindae.nn_utils import SimpleMLP
+if TYPE_CHECKING:
+    from sindae.nn_utils import SimpleMLP
 from sindae.problem import ProblemDefinition
 from sindae.solvers import make_nlp_solver
 from sindae.algorithms.model_builder_utils import (

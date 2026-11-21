@@ -1,39 +1,75 @@
-from sindae.nn_utils import SimpleMLP as SimpleMLP
-from sindae.nn_utils import flatten_fn as flatten_fn
-from sindae.nn_utils import make_unflatten_fn as make_unflatten_fn
-from sindae.data_utils import InstanceData as InstanceData
-from sindae.data_utils import TrajectoryData as TrajectoryData
-from sindae.data_utils import NormStats as NormStats
-from sindae.data_utils import extract_instance_data as extract_instance_data
-from sindae.data_utils import generate_data as generate_data
-from sindae.problem import ProblemDefinition as ProblemDefinition
-from sindae.hybrid_dae import HybridDAE as HybridDAE
-from sindae.solvers import make_nlp_solver as make_nlp_solver
-from sindae.solvers import make_linear_solver as make_linear_solver
-from sindae.solvers import NLPSolver as NLPSolver
-from sindae.solvers import SolverConfig as SolverConfig
+"""SiNDAE's public names.
 
-from sindae.algorithms.smoother import build_smoother_model as build_smoother_model
-from sindae.algorithms.smoother import solve_smoother as solve_smoother
-from sindae.algorithms.smoother import SmootherConfig as SmootherConfig
-from sindae.algorithms.pretrain import PretrainConfig as PretrainConfig
-from sindae.algorithms.pretrain import pretrain_mlp as pretrain_mlp
-from sindae.algorithms.decomp.train import DecompConfig as DecompConfig
-from sindae.algorithms.decomp.train import train_decomp as train_decomp
-from sindae.algorithms.decomp.model_builder import build_decomp_model as build_decomp_model
-from sindae.algorithms.simultaneous.model_builder import build_simultaneous_model as build_simultaneous_model
-from sindae.algorithms.simultaneous.model_builder import build_simultaneous_model_gbm as build_simultaneous_model_gbm
-from sindae.algorithms.simultaneous.model_builder import extract_mlp as extract_mlp
-from sindae.algorithms.simultaneous.train import SimultaneousConfig as SimultaneousConfig
-from sindae.algorithms.simultaneous.train import solve_simultaneous as solve_simultaneous
-from sindae.algorithms.inference import make_inference_model as make_inference_model
-from sindae.algorithms.inference import solve_inference as solve_inference
-from sindae.plot_utils import plot_instance_data, plot_training_history
-from sindae.example_problems import FourTankProblem, LeslieGowerProblem, FedBatchBioreactorProblem
+Each name imports its module on first use (PEP 562), so ``import sindae`` and
+the modules the expression-writing path uses (``problem``, ``data_utils``,
+``solvers``, ``algorithms.smoother`` and ``algorithms.simultaneous.model_builder``)
+import without JAX, Equinox, Optax or pynumero's grey-box interface. Those are
+imported by the modules that call them, when they are first used.
+"""
+
+from importlib import import_module
 from importlib.metadata import PackageNotFoundError, version
+
+_EXPORTS = {
+    "SimpleMLP": "sindae.nn_utils",
+    "flatten_fn": "sindae.nn_utils",
+    "make_unflatten_fn": "sindae.nn_utils",
+    "InstanceData": "sindae.data_utils",
+    "TrajectoryData": "sindae.data_utils",
+    "NormStats": "sindae.data_utils",
+    "extract_instance_data": "sindae.data_utils",
+    "generate_data": "sindae.data_utils",
+    "ProblemDefinition": "sindae.problem",
+    "HybridDAE": "sindae.hybrid_dae",
+    "make_nlp_solver": "sindae.solvers",
+    "make_linear_solver": "sindae.solvers",
+    "NLPSolver": "sindae.solvers",
+    "SolverConfig": "sindae.solvers",
+    "build_smoother_model": "sindae.algorithms.smoother",
+    "solve_smoother": "sindae.algorithms.smoother",
+    "SmootherConfig": "sindae.algorithms.smoother",
+    "PretrainConfig": "sindae.algorithms.pretrain",
+    "pretrain_mlp": "sindae.algorithms.pretrain",
+    "DecompConfig": "sindae.algorithms.decomp.train",
+    "train_decomp": "sindae.algorithms.decomp.train",
+    "build_decomp_model": "sindae.algorithms.decomp.model_builder",
+    "build_simultaneous_model": "sindae.algorithms.simultaneous.model_builder",
+    "build_simultaneous_model_gbm": "sindae.algorithms.simultaneous.model_builder",
+    "extract_mlp": "sindae.algorithms.simultaneous.model_builder",
+    "SimultaneousConfig": "sindae.algorithms.simultaneous.train",
+    "solve_simultaneous": "sindae.algorithms.simultaneous.train",
+    "make_inference_model": "sindae.algorithms.inference",
+    "solve_inference": "sindae.algorithms.inference",
+    "plot_instance_data": "sindae.plot_utils",
+    "plot_training_history": "sindae.plot_utils",
+    "FourTankProblem": "sindae.example_problems",
+    "LeslieGowerProblem": "sindae.example_problems",
+    "FedBatchBioreactorProblem": "sindae.example_problems",
+}
+
+__all__ = [*_EXPORTS, "__version__"]
 
 try:
     __version__ = version("sindae")
 except PackageNotFoundError:
     # Plain source checkout without an installed distribution.
     __version__ = "0.0.0+unknown"
+
+
+def __getattr__(name):
+    """Import the module that defines ``name``, or the submodule ``name``."""
+    if name in _EXPORTS:
+        value = getattr(import_module(_EXPORTS[name]), name)
+    else:
+        try:
+            value = import_module(f"{__name__}.{name}")
+        except ModuleNotFoundError as error:
+            if error.name != f"{__name__}.{name}":
+                raise
+            raise AttributeError(f"module {__name__!r} has no attribute {name!r}") from None
+    globals()[name] = value
+    return value
+
+
+def __dir__():
+    return sorted({*globals(), *_EXPORTS})

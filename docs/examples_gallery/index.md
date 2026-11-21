@@ -21,6 +21,12 @@ A two-state ODE trained with the **decomposition** approach. Demonstrates adding
 **custom path constraint** (a Lyapunov descent inequality) to embed mechanistic
 prior knowledge during training.
 
+### [Leslie-Gower Predator-Prey in the Browser](leslie_gower_browser.md)
+
+The same system trained with the **simultaneous** approach in a page that runs
+in the browser, with nothing to install. Generate data, train and infer in three
+steps, each with its own options, and watch the training NLP converge.
+
 ### [Fed-Batch Bioreactor: Importing Measured Data](fedbatch_example.ipynb)
 
 A four-state ODE with Monod growth kinetics. Demonstrates the **bring-your-own-data**

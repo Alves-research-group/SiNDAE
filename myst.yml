@@ -53,6 +53,7 @@ project:
         - file: docs/examples_gallery/index.md
         - file: docs/examples_gallery/four_tank_example.ipynb
         - file: docs/examples_gallery/leslie_gower_example.ipynb
+        - file: docs/examples_gallery/leslie_gower_browser.md
         - file: docs/examples_gallery/fedbatch_example.ipynb
         - file: docs/examples_gallery/fedbatch_partial_obs_example.ipynb
         - file: docs/examples_gallery/fedbatch_validation_example.ipynb
