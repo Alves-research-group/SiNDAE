@@ -5,6 +5,15 @@ All notable user-visible changes to SiNDAE. The format follows
 
 ## [Unreleased]
 
+### Changed
+- `import sindae` imports each public name's module on first use, and the
+  modules of the expression-writing path (`problem`, `data_utils`, `solvers`,
+  `algorithms.smoother`, `algorithms.simultaneous.model_builder`) import JAX,
+  Equinox, Optax and pynumero's grey-box interface only in the functions that
+  call them. `eqx_mlp_to_nn_block` also takes a network of NumPy arrays whose
+  activations are named (`"tanh"`, `"softplus"`, `"swish"`), so
+  `build_simultaneous_model` runs where JAX is not installed, as in Pyodide.
+
 ### Added
 - `HybridDAE`: high-level scikit-learn-style fit/predict wrapper over the full
   pipeline (smoother, pretraining, simultaneous or decomposition training,

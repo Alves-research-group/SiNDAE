@@ -27,13 +27,14 @@ Internal helpers (used by approach model_builders):
 """
 from __future__ import annotations
 
-from typing import Callable, List
+from typing import TYPE_CHECKING, Callable, List
 
 import numpy as np
 import pyomo.environ as pyo
 
 from sindae.data_utils import InstanceData
-from sindae.nn_utils import SimpleMLP
+if TYPE_CHECKING:
+    from sindae.nn_utils import SimpleMLP
 from sindae.problem import ProblemDefinition
 
 

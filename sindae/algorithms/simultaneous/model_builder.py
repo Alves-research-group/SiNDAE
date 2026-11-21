@@ -21,14 +21,12 @@ optimised weights.
 """
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
 
 import numpy as np
 import pyomo.environ as pyo
-from pyomo.contrib.pynumero.interfaces.external_grey_box import ExternalGreyBoxBlock
 
 from sindae.data_utils import InstanceData
-from sindae.nn_utils import SimpleMLP, flatten_fn, make_unflatten_fn
 from sindae.algorithms.simultaneous.nn_block import (
     make_nn_output_expression,
     eqx_mlp_to_nn_block,
@@ -45,7 +43,9 @@ from sindae.algorithms.model_builder_utils import (
     _unfix_nn_inputs_and_outputs,
     build_data_fit_expr,
 )
-from sindae.algorithms.simultaneous.gbm import NNSimulGreyBoxModel
+
+if TYPE_CHECKING:
+    from sindae.nn_utils import SimpleMLP
 
 
 # ---------------------------------------------------------------------------
@@ -225,6 +225,10 @@ def build_simultaneous_model_gbm(
     num_traj   = len(traj_indices)
     input_dim  = mlp.in_size
     output_dim = mlp.out_size
+
+    from pyomo.contrib.pynumero.interfaces.external_grey_box import ExternalGreyBoxBlock
+    from sindae.algorithms.simultaneous.gbm import NNSimulGreyBoxModel
+    from sindae.nn_utils import flatten_fn, make_unflatten_fn
 
     flat_theta_init = np.array(flatten_fn(mlp))
     n_params        = len(flat_theta_init)
